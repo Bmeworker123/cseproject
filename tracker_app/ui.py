@@ -110,9 +110,10 @@ class ProjectApprovalApp(tk.Tk):
         card = tk.Frame(wrapper, bg="white", padx=24, pady=24)
         card.pack(expand=True, ipadx=18, ipady=12)
 
-        top_row = tk.Frame(card, bg="white")
-        top_row.pack(fill="x")
-        self.make_button(top_row, "Back", self.handle_auth_back).pack(anchor="w")
+        if self.auth_mode == "signup":
+            top_row = tk.Frame(card, bg="white")
+            top_row.pack(fill="x")
+            self.make_button(top_row, "Back", self.handle_auth_back).pack(anchor="w")
 
         title = "Create Account" if self.auth_mode == "signup" else "Sign In"
         subtitle = (
