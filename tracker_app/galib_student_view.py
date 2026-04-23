@@ -1,4 +1,5 @@
 import tkinter as tk
+from .ui import Button, Label
 
 
 class StudentRepository:
@@ -29,7 +30,7 @@ class StudentMixin:
         subtitle = f"Signed in as {self.current_user['name']} ({self.current_user['email']})"
         self.create_header("Student Workspace", subtitle)
         sidebar, content = self.build_shell()
-        tk.Label(sidebar, text="Student Menu", font=("Segoe UI", 15, "bold"), bg="#16324f", fg="white").pack(anchor="w", padx=14, pady=(16, 8))
+        Label(sidebar, text="Student Menu", size=15, bold=True, bg="#16324f", fg="white").pack(anchor="w", padx=14, pady=(16, 8))
         self.sidebar_button(sidebar, "Overview", lambda: self.set_student_page("overview"), self.student_page == "overview")
         self.sidebar_button(sidebar, "Project Form", lambda: self.set_student_page("project"), self.student_page == "project")
         self.sidebar_button(sidebar, "Status", lambda: self.set_student_page("status"), self.student_page == "status")
@@ -46,86 +47,78 @@ class StudentMixin:
         user = self.student_repo.refresh_user(self.current_user["id"])
         self.current_user = user
         project = self.current_student_project()
-        tk.Label(parent, text="Overview", font=("Segoe UI", 16, "bold"), bg="white", fg="#1f2933").pack(anchor="w")
-        tk.Label(parent, text="Your student profile, class, team, and latest project summary.", font=("Segoe UI", 10), bg="white", fg="#52606d", pady=6).pack(anchor="w")
-        stats = tk.Frame(parent, bg="white")
-        stats.pack(fill="x", pady=(14, 18))
-        self.render_stat_card(stats, "Account Status", user.get("status", "Active"))
-        self.render_stat_card(stats, "Class", self.student_repo.class_name(user.get("class_id")))
-        self.render_stat_card(stats, "Team", self.student_repo.team_name(user.get("team_id")))
-        profile = tk.Frame(parent, bg="#f7f9fb", padx=16, pady=16)
-        profile.pack(fill="x")
-        tk.Label(profile, text="Student Profile", font=("Segoe UI", 13, "bold"), bg="#f7f9fb", fg="#102a43").pack(anchor="w")
+        Label(parent, text="Overview", size=16, bold=True, bg="white", fg="#1f2933").pack(anchor="w")
+        Label(parent, text="Your student profile, class, team, and latest project summary.", size=10, bg="white", fg="#52606d").pack(anchor="w", pady=6)
+        top = tk.Frame(parent, bg="white")
+        top.pack(fill="x", pady=(10, 0))
+        profile = tk.Frame(top, bg="#f7f9fb", padx=16, pady=16)
+        profile.pack(side="left", fill="both", expand=True, padx=(0, 10))
+        Label(profile, text="Student Profile", size=13, bold=True, bg="#f7f9fb", fg="#102a43").pack(anchor="w")
         details = [
             f"Name: {user['name']}",
             f"Email: {user['email']}",
-            f"Student ID: {user.get('student_id') or 'Not added'}",
-            f"Department: {user.get('department') or 'Not added'}",
-            f"Class: {self.student_repo.class_name(user.get('class_id'))}",
-            f"Team: {self.student_repo.team_name(user.get('team_id'))}",
-            f"Teacher Notes: {user.get('notes') or 'No teacher notes yet'}",
+            f"Student ID: {user.get('student_id', 'N/A')}",
+            f"Department: {user.get('department', 'N/A')}",
+            f"Class: {self.student_repo.class_name(user.get('class_id')) or 'Not Assigned'}",
+            f"Team: {self.student_repo.team_name(user.get('team_id')) or 'Not Assigned'}"
         ]
         for detail in details:
-            tk.Label(profile, text=detail, font=("Segoe UI", 10), bg="#f7f9fb", fg="#334e68", pady=2).pack(anchor="w")
-        summary = tk.Frame(parent, bg="#eef8f1", padx=16, pady=16)
-        summary.pack(fill="x", pady=(16, 0))
-        tk.Label(summary, text="Project Summary", font=("Segoe UI", 13, "bold"), bg="#eef8f1", fg="#14532d").pack(anchor="w")
+            Label(profile, text=detail, size=10, bg="#f7f9fb", fg="#334e68").pack(anchor="w", pady=2)
+        summary = tk.Frame(top, bg="#eef8f1", padx=16, pady=16)
+        summary.pack(side="left", fill="both", expand=True)
+        Label(summary, text="Project Summary", size=13, bold=True, bg="#eef8f1", fg="#14532d").pack(anchor="w")
         if not project:
-            tk.Label(summary, text="No project yet. Open Project Form to create one.", font=("Segoe UI", 10), bg="#eef8f1", fg="#1f7a45").pack(anchor="w", pady=(6, 0))
+            Label(summary, text="No project yet. Open Project Form to create one.", size=10, bg="#eef8f1", fg="#1f7a45").pack(anchor="w", pady=(6, 0))
         else:
-            lines = [
+            p_details = [
                 f"Title: {project['title']}",
+                f"Stage: {project.get('stage', 'N/A')}",
                 f"Status: {project['status']}",
-                f"Stage: {project['stage']}",
-                f"Official Progress: {project['progress']}%",
+                f"Progress: {project['progress']}%"
             ]
-            if project.get("requested_progress") is not None:
-                lines.append(f"Requested Progress: {project['requested_progress']}% waiting for professor confirmation")
-            for line in lines:
-                tk.Label(summary, text=line, font=("Segoe UI", 10), bg="#eef8f1", fg="#1f7a45", pady=2).pack(anchor="w")
-        self.render_student_notifications(parent, project)
-    def render_student_notifications(self, parent, project):
+            for line in p_details:
+                Label(summary, text=line, size=10, bg="#eef8f1", fg="#1f7a45").pack(anchor="w", pady=2)
         box = tk.Frame(parent, bg="#fff7ed", padx=16, pady=16)
-        box.pack(fill="x", pady=(16, 0))
-        tk.Label(box, text="Notifications", font=("Segoe UI", 13, "bold"), bg="#fff7ed", fg="#9a3412").pack(anchor="w")
-        if not project or not project.get("notifications"):
-            tk.Label(box, text="No notifications yet.", font=("Segoe UI", 10), bg="#fff7ed", fg="#b45309").pack(anchor="w", pady=(6, 0))
-            return
-        for notification in project["notifications"][:5]:
-            tk.Label(box, text=notification, font=("Segoe UI", 10), bg="#fff7ed", fg="#7c2d12", wraplength=760, justify="left", pady=2).pack(anchor="w")
+        box.pack(fill="x", pady=(18, 0))
+        Label(box, text="Notifications", size=13, bold=True, bg="#fff7ed", fg="#9a3412").pack(anchor="w")
+        if not user.get("notifications"):
+            Label(box, text="No notifications yet.", size=10, bg="#fff7ed", fg="#b45309").pack(anchor="w", pady=(6, 0))
+        else:
+            for notification in user["notifications"]:
+                Label(box, text=notification, size=10, bg="#fff7ed", fg="#7c2d12", wraplength=760, justify="left").pack(anchor="w", pady=2)
     def render_student_project_form(self, parent):
         project = self.current_student_project()
-        tk.Label(parent, text="Project Form", font=("Segoe UI", 16, "bold"), bg="white", fg="#1f2933").pack(anchor="w")
-        tk.Label(parent, text="Submit your project and keep stage, priority, and progress updated.", font=("Segoe UI", 10), bg="white", fg="#52606d", pady=6).pack(anchor="w")
-        self.student_form_message = tk.Label(parent, text="", font=("Segoe UI", 10), bg="white", fg="#1f7a45")
-        self.student_form_message.pack(anchor="w", pady=(4, 10))
+        Label(parent, text="Project Form", size=16, bold=True, bg="white", fg="#1f2933").pack(anchor="w")
+        Label(parent, text="Submit your project and keep stage, priority, and progress updated.", size=10, bg="white", fg="#52606d").pack(anchor="w", pady=6)
+        self.student_form_message = Label(parent, text="", size=10, bg="white", fg="#1f7a45")
+        self.student_form_message.pack(anchor="w", pady=(4, 8))
         form = tk.Frame(parent, bg="white")
-        form.pack(fill="both", expand=True)
-        tk.Label(form, text="Project Title", font=("Segoe UI", 10), bg="white").pack(anchor="w", pady=(6, 4))
+        form.pack(fill="x", pady=10)
+        Label(form, text="Project Title", size=10, bg="white").pack(anchor="w", pady=(6, 4))
         self.project_title_entry = tk.Entry(form, font=("Segoe UI", 11))
         self.project_title_entry.pack(fill="x")
-        tk.Label(form, text="Project Description / Notes", font=("Segoe UI", 10), bg="white").pack(anchor="w", pady=(12, 4))
-        self.project_notes_text = tk.Text(form, height=8, font=("Segoe UI", 10))
+        Label(form, text="Project Description / Notes", size=10, bg="white").pack(anchor="w", pady=(12, 4))
+        self.project_notes_text = tk.Text(form, height=6, font=("Segoe UI", 10))
         self.project_notes_text.pack(fill="x")
         row = tk.Frame(form, bg="white")
-        row.pack(fill="x", pady=(12, 0))
+        row.pack(fill="x", pady=16)
         left = tk.Frame(row, bg="white")
-        left.pack(side="left", fill="x", expand=True, padx=(0, 8))
-        tk.Label(left, text="Project Stage", font=("Segoe UI", 10), bg="white").pack(anchor="w")
+        left.pack(side="left", fill="x", expand=True, padx=(0, 10))
+        Label(left, text="Project Stage", size=10, bg="white").pack(anchor="w")
         self.stage_var = tk.StringVar(value="Proposal")
-        tk.OptionMenu(left, self.stage_var, "Proposal", "Research", "Prototype", "Testing", "Final Review").pack(fill="x")
+        tk.OptionMenu(left, self.stage_var, "Proposal", "Requirement Analysis", "Design", "Development", "Testing", "Deployment").pack(fill="x")
         right = tk.Frame(row, bg="white")
-        right.pack(side="left", fill="x", expand=True, padx=(8, 0))
-        tk.Label(right, text="Priority", font=("Segoe UI", 10), bg="white").pack(anchor="w")
+        right.pack(side="left", fill="x", expand=True)
+        Label(right, text="Priority", size=10, bg="white").pack(anchor="w")
         self.priority_var = tk.StringVar(value="Medium")
         tk.OptionMenu(right, self.priority_var, "Low", "Medium", "High").pack(fill="x")
-        tk.Label(form, text="Progress", font=("Segoe UI", 10), bg="white").pack(anchor="w", pady=(12, 4))
+        Label(form, text="Progress", size=10, bg="white").pack(anchor="w", pady=(12, 4))
         self.progress_scale = tk.Scale(form, from_=0, to=100, orient="horizontal", bg="white", highlightthickness=0, length=360)
         self.progress_scale.pack(anchor="w")
         button_row = tk.Frame(form, bg="white")
         button_row.pack(anchor="w", pady=(16, 0))
-        self.make_button(button_row, "Save Project", self.save_student_project, primary=True).pack(side="left", padx=(0, 8))
-        self.make_button(button_row, "Go To Status", lambda: self.set_student_page("status")).pack(side="left")
+        Button(button_row, "Save Project", self.save_student_project, primary=True).pack(side="left", padx=(0, 8))
+        Button(button_row, "Go To Status", lambda: self.set_student_page("status")).pack(side="left")
         if project:
             self.project_title_entry.insert(0, project["title"])
             self.project_notes_text.insert("1.0", project["notes"])
@@ -134,32 +127,29 @@ class StudentMixin:
             self.progress_scale.set(project.get("progress", 0))
     def render_student_status(self, parent):
         project = self.current_student_project()
-        tk.Label(parent, text="Project Status", font=("Segoe UI", 16, "bold"), bg="white", fg="#1f2933").pack(anchor="w")
-        tk.Label(parent, text="See the latest teacher feedback, class, and team context.", font=("Segoe UI", 10), bg="white", fg="#52606d", pady=6).pack(anchor="w")
+        Label(parent, text="Project Status", size=16, bold=True, bg="white", fg="#1f2933").pack(anchor="w")
+        Label(parent, text="See the latest teacher feedback, class, and team context.", size=10, bg="white", fg="#52606d").pack(anchor="w", pady=6)
         if not project:
             empty = tk.Frame(parent, bg="#fff7ed", padx=18, pady=18)
-            empty.pack(fill="x", pady=(12, 0))
-            tk.Label(empty, text="No project submitted yet.", font=("Segoe UI", 13, "bold"), bg="#fff7ed", fg="#9a3412").pack(anchor="w")
-            tk.Label(empty, text="Create your project in the Project Form page first.", font=("Segoe UI", 10), bg="#fff7ed", fg="#b45309").pack(anchor="w", pady=(6, 0))
+            empty.pack(fill="x", pady=20)
+            Label(empty, text="No project submitted yet.", size=13, bold=True, bg="#fff7ed", fg="#9a3412").pack(anchor="w")
+            Label(empty, text="Create your project in the Project Form page first.", size=10, bg="#fff7ed", fg="#b45309").pack(anchor="w", pady=(6, 0))
             return
-        card = tk.Frame(parent, bg="#f7f9fb", padx=18, pady=18)
-        card.pack(fill="x", pady=(14, 0))
+        card = tk.Frame(parent, bg="#f7f9fb", padx=20, pady=20)
+        card.pack(fill="both", expand=True, pady=10)
         lines = [
-            f"Title: {project['title']}",
-            f"Status: {project['status']}",
-            f"Stage: {project['stage']}",
-            f"Priority: {project['priority']}",
-            f"Official Progress: {project['progress']}%",
-            f"Requested Progress: {project['requested_progress']}%" if project.get("requested_progress") is not None else "Requested Progress: None",
-            f"Progress Request Status: {project.get('progress_request_status', 'None')}",
-            f"Class: {self.student_repo.class_name(project.get('class_id'))}",
-            f"Team: {self.student_repo.team_name(project.get('team_id'))}",
-            f"Meeting Status: {project.get('meeting_status', 'Not Scheduled')}",
-            f"Professor Notes: {project['professor_notes']}",
+            f"Project: {project['title']}",
+            f"Class: {self.student_repo.class_name(self.current_user.get('class_id')) or 'Not Assigned'}",
+            f"Team: {self.student_repo.team_name(self.current_user.get('team_id')) or 'Not Assigned'}",
+            f"Meeting Status: {project.get('meeting_status', 'Pending')}",
+            f"Project Status: {project['status']}",
+            f"Last Update: {project['updated_at']}"
         ]
         for line in lines:
-            tk.Label(card, text=line, font=("Segoe UI", 10), bg="#f7f9fb", fg="#334e68", pady=2, justify="left").pack(anchor="w")
-        self.render_student_notifications(parent, project)
+            Label(card, text=line, size=10, bg="#f7f9fb", fg="#334e68", justify="left").pack(anchor="w", pady=2)
+        Label(card, text="Professor Notes:", size=10, bold=True, bg="#f7f9fb", fg="#102a43").pack(anchor="w", pady=(14, 4))
+        notes = project.get("professor_notes", "No notes from professor yet.")
+        Label(card, text=notes, size=10, bg="#f7f9fb", fg="#334e68", wraplength=720, justify="left").pack(anchor="w")
     def save_student_project(self):
         title = self.project_title_entry.get().strip()
         notes = self.project_notes_text.get("1.0", "end").strip()
