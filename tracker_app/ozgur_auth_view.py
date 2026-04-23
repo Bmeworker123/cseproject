@@ -1,6 +1,7 @@
 import re
 import tkinter as tk
 from tkinter import messagebox
+from .ui import Button, Label
 
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -26,17 +27,17 @@ class AuthMixin:
         if self.auth_mode == "signup":
             top_row = tk.Frame(card, bg="white")
             top_row.pack(fill="x")
-            self.make_button(top_row, "Back", self.handle_auth_back).pack(anchor="w")
+            Button(top_row, "Back", self.handle_auth_back).pack(anchor="w")
         title = "Create Account" if self.auth_mode == "signup" else "Sign In"
         subtitle = (
             "Create a student or professor account, then use classes and teams inside the professor workspace."
             if self.auth_mode == "signup"
             else "Sign in with the email and password you created in this app."
         )
-        self.label(card, "Project Approval Tracker", 17, True, fg="#1f2933", pady=(14, 0))
-        self.label(card, title, 14, True, fg="#102a43", pady=8)
-        self.label(card, subtitle, fg="#52606d", wraplength=500, justify="left")
-        self.auth_message = tk.Label(card, text="", font=("Segoe UI", 9), bg="white", fg="#c0392b")
+        Label(card, "Project Approval Tracker", 17, True, fg="#1f2933").pack(anchor="w", pady=(14, 0))
+        Label(card, title, 14, True, fg="#102a43").pack(anchor="w", pady=8)
+        Label(card, subtitle, fg="#52606d", wraplength=500, justify="left").pack(anchor="w")
+        self.auth_message = Label(card, "", bg="white", fg="#c0392b", size=9)
         self.auth_message.pack(anchor="w", pady=(10, 0))
         self.name_entry = self.entry_field(card, "Full Name")
         self.email_entry = self.entry_field(card, "Email")
@@ -44,7 +45,7 @@ class AuthMixin:
         self.password_entry.bind("<Return>", lambda _event: self.submit_auth())
         self.role_var = tk.StringVar(value="student")
         if self.auth_mode == "signup":
-            self.label(card, "Role", bg="white", fg="#000000", pady=(12, 4))
+            Label(card, "Role", bg="white", fg="#000000").pack(anchor="w", pady=(12, 4))
             role_row = tk.Frame(card, bg="white")
             role_row.pack(anchor="w")
             tk.Radiobutton(role_row, text="Student", variable=self.role_var, value="student", bg="white", font=("Segoe UI", 10)).pack(side="left", padx=(0, 14))
@@ -52,10 +53,10 @@ class AuthMixin:
             self.student_id_entry = self.entry_field(card, "Student ID (optional)")
             self.department_entry = self.entry_field(card, "Department (optional)")
         primary_text = "Create Account" if self.auth_mode == "signup" else "Sign In"
-        self.make_button(card, primary_text, self.submit_auth, primary=True).pack(fill="x", pady=(18, 10))
+        Button(card, primary_text, self.submit_auth, primary=True).pack(fill="x", pady=(18, 10))
         switch_text = "Already have an account? Sign in" if self.auth_mode == "signup" else "Need an account? Create one"
-        tk.Button(card, text=switch_text, command=self.toggle_auth_mode, font=("Segoe UI", 10), bg="white", fg="#334e68", relief="flat").pack(anchor="w")
-        tk.Label(card, text="No demo accounts exist. Teachers can create classes and teams after signing in.", font=("Segoe UI", 9), bg="white", fg="#7b8794", wraplength=500, justify="left", pady=10).pack(anchor="w")
+        Button(card, text=switch_text, command=self.toggle_auth_mode, relief="flat", bd=0).pack(anchor="w")
+        Label(card, "No demo accounts exist. Teachers can create classes and teams after signing in.", size=9, bg="white", fg="#7b8794", wraplength=500, justify="left").pack(anchor="w", pady=10)
         self.name_entry.focus_set()
     def toggle_auth_mode(self):
         self.auth_mode = "signup" if self.auth_mode == "signin" else "signin"
