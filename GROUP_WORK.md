@@ -11,7 +11,7 @@ Files:
 
 What to explain:
 
-- `mardin_datastore.py` is the main local database layer. It reads and writes JSON files for users, projects, classes, and teams.
+- `mardin_datastore.py` is the main local database layer. It creates and uses SQLite SQL tables for users, projects, classes, teams, team members, and notifications.
 - `mardin_professor_view.py` contains professor UI plus `ProfessorRepository`, which connects professor buttons to database actions.
 - This person explains the hardest features: deleting students/classes/teams, assigning students, approving projects, approving/rejecting progress, changing progress, and sending notifications.
 
@@ -61,4 +61,4 @@ What to explain:
 - `ahmet_ui.py` creates the main app shell.
 - `ozgur_auth_view.py`, `galib_student_view.py`, and `mardin_professor_view.py` contain the role-based screens.
 - Each role file has its own repository class.
-- `mardin_datastore.py` is the central database/storage file.
+- `mardin_datastore.py` is the central SQLite database/storage file.
