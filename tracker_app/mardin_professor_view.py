@@ -1,363 +1,25 @@
-import os
-import re
-import sys
 import tkinter as tk
 from tkinter import messagebox
-from .datastore import DataStore
-EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-class ProjectApprovalApp(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        if getattr(sys, "frozen", False):
-            base_dir = os.path.dirname(sys.executable)
-        else:
-            base_dir = os.path.dirname(os.path.dirname(__file__))
-        self.store = DataStore(base_dir)
-        self.current_user = None
-        self.auth_mode = "signin"
-        self.selected_student_id = None
-        self.selected_project_id = None
-        self.selected_class_id = None
-        self.selected_team_id = None
-        self.student_page = "overview"
-        self.professor_page = "overview"
-        self.title("Student Project Tracker")
-        self.geometry("1180x760")
-        self.configure(bg="#eef2f6")
-        self.resizable(False, False)
-        self.main_frame = tk.Frame(self, bg="#eef2f6", padx=20, pady=20)
-        self.main_frame.pack(fill="both", expand=True)
-        self.show_auth_screen()
-    def clear_screen(self):
-        for widget in self.main_frame.winfo_children():
-            widget.destroy()
-    def make_button(self, parent, text, command, primary=False):
-        bg = "#2f80ed" if primary else "white"
-        fg = "white" if primary else "#334e68"
-        relief = "flat" if primary else "solid"
-        return tk.Button(
-            parent,
-            text=text,
-            command=command,
-            font=("Segoe UI", 10, "bold" if primary else "normal"),
-            bg=bg,
-            fg=fg,
-            activebackground=bg,
-            activeforeground=fg,
-            relief=relief,
-            bd=1 if not primary else 0,
-            padx=12,
-            pady=8,
-        )
-    def label(self, parent, text, size=10, bold=False, bg="white", fg="#334e68", **pack):
-        font = ("Segoe UI", size, "bold") if bold else ("Segoe UI", size)
-        widget = tk.Label(parent, text=text, font=font, bg=bg, fg=fg, **{k: v for k, v in pack.items() if k in {"wraplength", "justify"}})
-        pack_args = {"anchor": pack.get("anchor", "w"), "pady": pack.get("pady", 0)}
-        if pack.get("fill"):
-            pack_args["fill"] = pack["fill"]
-        widget.pack(**pack_args)
-        return widget
-    def entry_field(self, parent, label, show=None, bg="white"):
-        self.label(parent, label, bg=bg, fg="#000000", pady=(12, 4))
-        entry = tk.Entry(parent, show=show, font=("Segoe UI", 11))
-        entry.pack(fill="x")
-        return entry
-    def text_field(self, parent, label, height=4, bg="white"):
-        self.label(parent, label, bg=bg, fg="#000000")
-        text = tk.Text(parent, height=height, font=("Segoe UI", 10))
-        text.pack(fill="x", pady=(4, 10))
-        return text
-    def option_field(self, parent, label, variable, values, bg="white", fill="x"):
-        self.label(parent, label, bg=bg, fg="#000000")
-        menu = tk.OptionMenu(parent, variable, *values)
-        pack_args = {"pady": (4, 0)}
-        if fill:
-            pack_args["fill"] = fill
-        else:
-            pack_args["anchor"] = "w"
-        menu.pack(**pack_args)
-        return menu
-    def render_stat_card(self, parent, title, value, note="", bg="#f7f9fb"):
-        card = tk.Frame(parent, bg=bg, padx=14, pady=14)
-        card.pack(side="left", fill="both", expand=True, padx=6)
-        tk.Label(card, text=title, font=("Segoe UI", 10), bg=bg, fg="#52606d").pack(anchor="w")
-        tk.Label(card, text=value, font=("Segoe UI", 17, "bold"), bg=bg, fg="#102a43", pady=4).pack(anchor="w")
-        if note:
-            tk.Label(card, text=note, font=("Segoe UI", 9), bg=bg, fg="#7b8794", wraplength=220, justify="left").pack(anchor="w")
-    def create_header(self, title, subtitle):
-        header = tk.Frame(self.main_frame, bg="#eef2f6")
-        header.pack(fill="x", pady=(0, 14))
-        info = tk.Frame(header, bg="#eef2f6")
-        info.pack(side="left")
-        tk.Label(info, text=title, font=("Segoe UI", 18, "bold"), bg="#eef2f6", fg="#102a43").pack(anchor="w")
-        tk.Label(info, text=subtitle, font=("Segoe UI", 10), bg="#eef2f6", fg="#52606d").pack(anchor="w")
-        actions = tk.Frame(header, bg="#eef2f6")
-        actions.pack(side="right")
-        self.make_button(actions, "Back", self.log_out).pack(side="left", padx=(0, 8))
-        self.make_button(actions, "Log Out", self.log_out).pack(side="left")
-    def build_shell(self):
-        shell = tk.Frame(self.main_frame, bg="#eef2f6")
-        shell.pack(fill="both", expand=True)
-        sidebar = tk.Frame(shell, bg="#16324f", width=230)
-        sidebar.pack(side="left", fill="y")
-        sidebar.pack_propagate(False)
-        content = tk.Frame(shell, bg="white", padx=18, pady=18)
-        content.pack(side="left", fill="both", expand=True)
-        return sidebar, content
-    def sidebar_button(self, parent, text, command, active=False):
-        bg = "#2f80ed" if active else "#16324f"
-        self.make_button(parent, text, command, primary=active).pack(fill="x", padx=14, pady=6)
-        if not active:
-            parent.winfo_children()[-1].configure(bg="#16324f", fg="white", relief="flat", activebackground="#1d456b", activeforeground="white")
-    def show_auth_screen(self):
-        self.clear_screen()
-        wrapper = tk.Frame(self.main_frame, bg="#eef2f6")
-        wrapper.pack(fill="both", expand=True)
-        card = tk.Frame(wrapper, bg="white", padx=24, pady=24)
-        card.pack(expand=True, ipadx=18, ipady=12)
-        if self.auth_mode == "signup":
-            top_row = tk.Frame(card, bg="white")
-            top_row.pack(fill="x")
-            self.make_button(top_row, "Back", self.handle_auth_back).pack(anchor="w")
-        title = "Create Account" if self.auth_mode == "signup" else "Sign In"
-        subtitle = (
-            "Create a student or professor account, then use classes and teams inside the professor workspace."
-            if self.auth_mode == "signup"
-            else "Sign in with the email and password you created in this app."
-        )
-        self.label(card, "Project Approval Tracker", 17, True, fg="#1f2933", pady=(14, 0))
-        self.label(card, title, 14, True, fg="#102a43", pady=8)
-        self.label(card, subtitle, fg="#52606d", wraplength=500, justify="left")
-        self.auth_message = tk.Label(card, text="", font=("Segoe UI", 9), bg="white", fg="#c0392b")
-        self.auth_message.pack(anchor="w", pady=(10, 0))
-        self.name_entry = self.entry_field(card, "Full Name")
-        self.email_entry = self.entry_field(card, "Email")
-        self.password_entry = self.entry_field(card, "Password", show="*")
-        self.password_entry.bind("<Return>", lambda _event: self.submit_auth())
-        self.role_var = tk.StringVar(value="student")
-        if self.auth_mode == "signup":
-            self.label(card, "Role", bg="white", fg="#000000", pady=(12, 4))
-            role_row = tk.Frame(card, bg="white")
-            role_row.pack(anchor="w")
-            tk.Radiobutton(role_row, text="Student", variable=self.role_var, value="student", bg="white", font=("Segoe UI", 10)).pack(side="left", padx=(0, 14))
-            tk.Radiobutton(role_row, text="Professor", variable=self.role_var, value="professor", bg="white", font=("Segoe UI", 10)).pack(side="left")
-            self.student_id_entry = self.entry_field(card, "Student ID (optional)")
-            self.department_entry = self.entry_field(card, "Department (optional)")
-        primary_text = "Create Account" if self.auth_mode == "signup" else "Sign In"
-        self.make_button(card, primary_text, self.submit_auth, primary=True).pack(fill="x", pady=(18, 10))
-        switch_text = "Already have an account? Sign in" if self.auth_mode == "signup" else "Need an account? Create one"
-        tk.Button(card, text=switch_text, command=self.toggle_auth_mode, font=("Segoe UI", 10), bg="white", fg="#334e68", relief="flat").pack(anchor="w")
-        tk.Label(card, text="No demo accounts exist. Teachers can create classes and teams after signing in.", font=("Segoe UI", 9), bg="white", fg="#7b8794", wraplength=500, justify="left", pady=10).pack(anchor="w")
-        self.name_entry.focus_set()
-    def toggle_auth_mode(self):
-        self.auth_mode = "signup" if self.auth_mode == "signin" else "signin"
-        self.show_auth_screen()
-    def handle_auth_back(self):
-        if self.auth_mode == "signup":
-            self.auth_mode = "signin"
-            self.show_auth_screen()
-            return
-        self.destroy()
-    def validate_email_password(self, email, password):
-        if not email:
-            raise ValueError("Email is required.")
-        if not EMAIL_PATTERN.match(email):
-            raise ValueError("Enter a valid email address.")
-        if not password:
-            raise ValueError("Password is required.")
-        if len(password) < 6:
-            raise ValueError("Password must be at least 6 characters.")
-    def submit_auth(self):
-        name = self.name_entry.get().strip()
-        email = self.email_entry.get().strip().lower()
-        password = self.password_entry.get().strip()
-        try:
-            self.validate_email_password(email, password)
-            if self.auth_mode == "signup":
-                if not name:
-                    raise ValueError("Full name is required.")
-                student_id = self.student_id_entry.get().strip()
-                department = self.department_entry.get().strip()
-                self.current_user = self.store.create_user(name, email, password, self.role_var.get(), student_id, department)
-                self.auth_message.config(text="")
-                messagebox.showinfo("Account created", "Your account was created and you are now signed in.")
-            else:
-                self.current_user = self.store.authenticate(email, password)
-                self.auth_message.config(text="")
-        except ValueError as error:
-            self.auth_message.config(text=str(error))
-            return
-        self.show_dashboard()
-    def log_out(self):
-        self.current_user = None
-        self.auth_mode = "signin"
-        self.selected_student_id = None
-        self.selected_project_id = None
-        self.selected_class_id = None
-        self.selected_team_id = None
-        self.show_auth_screen()
-    def show_dashboard(self):
-        if self.current_user["role"] == "student":
-            self.show_student_dashboard()
-        else:
-            self.show_professor_dashboard()
-    def current_student_project(self):
-        return self.store.get_project_for_student(self.current_user["email"])
-    def show_student_dashboard(self):
-        self.clear_screen()
-        subtitle = f"Signed in as {self.current_user['name']} ({self.current_user['email']})"
-        self.create_header("Student Workspace", subtitle)
-        sidebar, content = self.build_shell()
-        tk.Label(sidebar, text="Student Menu", font=("Segoe UI", 15, "bold"), bg="#16324f", fg="white").pack(anchor="w", padx=14, pady=(16, 8))
-        self.sidebar_button(sidebar, "Overview", lambda: self.set_student_page("overview"), self.student_page == "overview")
-        self.sidebar_button(sidebar, "Project Form", lambda: self.set_student_page("project"), self.student_page == "project")
-        self.sidebar_button(sidebar, "Status", lambda: self.set_student_page("status"), self.student_page == "status")
-        if self.student_page == "overview":
-            self.render_student_overview(content)
-        elif self.student_page == "project":
-            self.render_student_project_form(content)
-        else:
-            self.render_student_status(content)
-    def set_student_page(self, page):
-        self.student_page = page
-        self.show_student_dashboard()
-    def render_student_overview(self, parent):
-        user = self.store.find_user_by_id(self.current_user["id"])
-        self.current_user = user
-        project = self.current_student_project()
-        tk.Label(parent, text="Overview", font=("Segoe UI", 16, "bold"), bg="white", fg="#1f2933").pack(anchor="w")
-        tk.Label(parent, text="Your student profile, class, team, and latest project summary.", font=("Segoe UI", 10), bg="white", fg="#52606d", pady=6).pack(anchor="w")
-        stats = tk.Frame(parent, bg="white")
-        stats.pack(fill="x", pady=(14, 18))
-        self.render_stat_card(stats, "Account Status", user.get("status", "Active"))
-        self.render_stat_card(stats, "Class", self.store.get_class_name(user.get("class_id")))
-        self.render_stat_card(stats, "Team", self.store.get_team_name(user.get("team_id")))
-        profile = tk.Frame(parent, bg="#f7f9fb", padx=16, pady=16)
-        profile.pack(fill="x")
-        tk.Label(profile, text="Student Profile", font=("Segoe UI", 13, "bold"), bg="#f7f9fb", fg="#102a43").pack(anchor="w")
-        details = [
-            f"Name: {user['name']}",
-            f"Email: {user['email']}",
-            f"Student ID: {user.get('student_id') or 'Not added'}",
-            f"Department: {user.get('department') or 'Not added'}",
-            f"Class: {self.store.get_class_name(user.get('class_id'))}",
-            f"Team: {self.store.get_team_name(user.get('team_id'))}",
-            f"Teacher Notes: {user.get('notes') or 'No teacher notes yet'}",
-        ]
-        for detail in details:
-            tk.Label(profile, text=detail, font=("Segoe UI", 10), bg="#f7f9fb", fg="#334e68", pady=2).pack(anchor="w")
-        summary = tk.Frame(parent, bg="#eef8f1", padx=16, pady=16)
-        summary.pack(fill="x", pady=(16, 0))
-        tk.Label(summary, text="Project Summary", font=("Segoe UI", 13, "bold"), bg="#eef8f1", fg="#14532d").pack(anchor="w")
-        if not project:
-            tk.Label(summary, text="No project yet. Open Project Form to create one.", font=("Segoe UI", 10), bg="#eef8f1", fg="#1f7a45").pack(anchor="w", pady=(6, 0))
-        else:
-            lines = [
-                f"Title: {project['title']}",
-                f"Status: {project['status']}",
-                f"Stage: {project['stage']}",
-                f"Official Progress: {project['progress']}%",
-            ]
-            if project.get("requested_progress") is not None:
-                lines.append(f"Requested Progress: {project['requested_progress']}% waiting for professor confirmation")
-            for line in lines:
-                tk.Label(summary, text=line, font=("Segoe UI", 10), bg="#eef8f1", fg="#1f7a45", pady=2).pack(anchor="w")
-        self.render_student_notifications(parent, project)
-    def render_student_notifications(self, parent, project):
-        box = tk.Frame(parent, bg="#fff7ed", padx=16, pady=16)
-        box.pack(fill="x", pady=(16, 0))
-        tk.Label(box, text="Notifications", font=("Segoe UI", 13, "bold"), bg="#fff7ed", fg="#9a3412").pack(anchor="w")
-        if not project or not project.get("notifications"):
-            tk.Label(box, text="No notifications yet.", font=("Segoe UI", 10), bg="#fff7ed", fg="#b45309").pack(anchor="w", pady=(6, 0))
-            return
-        for notification in project["notifications"][:5]:
-            tk.Label(box, text=notification, font=("Segoe UI", 10), bg="#fff7ed", fg="#7c2d12", wraplength=760, justify="left", pady=2).pack(anchor="w")
-    def render_student_project_form(self, parent):
-        project = self.current_student_project()
-        tk.Label(parent, text="Project Form", font=("Segoe UI", 16, "bold"), bg="white", fg="#1f2933").pack(anchor="w")
-        tk.Label(parent, text="Submit your project and keep stage, priority, and progress updated.", font=("Segoe UI", 10), bg="white", fg="#52606d", pady=6).pack(anchor="w")
-        self.student_form_message = tk.Label(parent, text="", font=("Segoe UI", 10), bg="white", fg="#1f7a45")
-        self.student_form_message.pack(anchor="w", pady=(4, 10))
-        form = tk.Frame(parent, bg="white")
-        form.pack(fill="both", expand=True)
-        tk.Label(form, text="Project Title", font=("Segoe UI", 10), bg="white").pack(anchor="w", pady=(6, 4))
-        self.project_title_entry = tk.Entry(form, font=("Segoe UI", 11))
-        self.project_title_entry.pack(fill="x")
-        tk.Label(form, text="Project Description / Notes", font=("Segoe UI", 10), bg="white").pack(anchor="w", pady=(12, 4))
-        self.project_notes_text = tk.Text(form, height=8, font=("Segoe UI", 10))
-        self.project_notes_text.pack(fill="x")
-        row = tk.Frame(form, bg="white")
-        row.pack(fill="x", pady=(12, 0))
-        left = tk.Frame(row, bg="white")
-        left.pack(side="left", fill="x", expand=True, padx=(0, 8))
-        tk.Label(left, text="Project Stage", font=("Segoe UI", 10), bg="white").pack(anchor="w")
-        self.stage_var = tk.StringVar(value="Proposal")
-        tk.OptionMenu(left, self.stage_var, "Proposal", "Research", "Prototype", "Testing", "Final Review").pack(fill="x")
-        right = tk.Frame(row, bg="white")
-        right.pack(side="left", fill="x", expand=True, padx=(8, 0))
-        tk.Label(right, text="Priority", font=("Segoe UI", 10), bg="white").pack(anchor="w")
-        self.priority_var = tk.StringVar(value="Medium")
-        tk.OptionMenu(right, self.priority_var, "Low", "Medium", "High").pack(fill="x")
-        tk.Label(form, text="Progress", font=("Segoe UI", 10), bg="white").pack(anchor="w", pady=(12, 4))
-        self.progress_scale = tk.Scale(form, from_=0, to=100, orient="horizontal", bg="white", highlightthickness=0, length=360)
-        self.progress_scale.pack(anchor="w")
-        button_row = tk.Frame(form, bg="white")
-        button_row.pack(anchor="w", pady=(16, 0))
-        self.make_button(button_row, "Save Project", self.save_student_project, primary=True).pack(side="left", padx=(0, 8))
-        self.make_button(button_row, "Go To Status", lambda: self.set_student_page("status")).pack(side="left")
-        if project:
-            self.project_title_entry.insert(0, project["title"])
-            self.project_notes_text.insert("1.0", project["notes"])
-            self.stage_var.set(project.get("stage", "Proposal"))
-            self.priority_var.set(project.get("priority", "Medium"))
-            self.progress_scale.set(project.get("progress", 0))
-    def render_student_status(self, parent):
-        project = self.current_student_project()
-        tk.Label(parent, text="Project Status", font=("Segoe UI", 16, "bold"), bg="white", fg="#1f2933").pack(anchor="w")
-        tk.Label(parent, text="See the latest teacher feedback, class, and team context.", font=("Segoe UI", 10), bg="white", fg="#52606d", pady=6).pack(anchor="w")
-        if not project:
-            empty = tk.Frame(parent, bg="#fff7ed", padx=18, pady=18)
-            empty.pack(fill="x", pady=(12, 0))
-            tk.Label(empty, text="No project submitted yet.", font=("Segoe UI", 13, "bold"), bg="#fff7ed", fg="#9a3412").pack(anchor="w")
-            tk.Label(empty, text="Create your project in the Project Form page first.", font=("Segoe UI", 10), bg="#fff7ed", fg="#b45309").pack(anchor="w", pady=(6, 0))
-            return
-        card = tk.Frame(parent, bg="#f7f9fb", padx=18, pady=18)
-        card.pack(fill="x", pady=(14, 0))
-        lines = [
-            f"Title: {project['title']}",
-            f"Status: {project['status']}",
-            f"Stage: {project['stage']}",
-            f"Priority: {project['priority']}",
-            f"Official Progress: {project['progress']}%",
-            f"Requested Progress: {project['requested_progress']}%" if project.get("requested_progress") is not None else "Requested Progress: None",
-            f"Progress Request Status: {project.get('progress_request_status', 'None')}",
-            f"Class: {self.store.get_class_name(project.get('class_id'))}",
-            f"Team: {self.store.get_team_name(project.get('team_id'))}",
-            f"Meeting Status: {project.get('meeting_status', 'Not Scheduled')}",
-            f"Professor Notes: {project['professor_notes']}",
-        ]
-        for line in lines:
-            tk.Label(card, text=line, font=("Segoe UI", 10), bg="#f7f9fb", fg="#334e68", pady=2, justify="left").pack(anchor="w")
-        self.render_student_notifications(parent, project)
-    def save_student_project(self):
-        title = self.project_title_entry.get().strip()
-        notes = self.project_notes_text.get("1.0", "end").strip()
-        progress = self.progress_scale.get()
-        stage = self.stage_var.get()
-        priority = self.priority_var.get()
-        if not title:
-            self.student_form_message.config(text="Project title is required.", fg="#c0392b")
-            return
-        self.current_user = self.store.find_user_by_id(self.current_user["id"])
-        project = self.store.save_student_project(self.current_user, title, notes, progress, stage, priority)
-        if project.get("requested_progress") is not None:
-            message = f"Project saved. Progress change to {project['requested_progress']}% is waiting for professor approval."
-        else:
-            message = f"Project saved with status: {project['status']}"
-        self.student_form_message.config(text=message, fg="#1f7a45")
+
+
+class ProfessorRepository:
+    def __init__(self, store):
+        self.store = store
+
+    def __getattr__(self, name):
+        return getattr(self.store, name)
+
+    def refresh_user(self, user_id):
+        return self.store.find_user_by_id(user_id)
+
+    def classes_for(self, teacher_email):
+        return self.store.list_classes_for_teacher(teacher_email)
+
+
+class ProfessorMixin:
     def show_professor_dashboard(self):
         self.clear_screen()
-        self.current_user = self.store.find_user_by_id(self.current_user["id"])
+        self.current_user = self.professor_repo.refresh_user(self.current_user["id"])
         subtitle = f"Signed in as {self.current_user['name']} ({self.current_user['email']})"
         self.create_header("Professor Workspace", subtitle)
         sidebar, content = self.build_shell()
@@ -381,14 +43,14 @@ class ProjectApprovalApp(tk.Tk):
         self.professor_page = page
         self.show_professor_dashboard()
     def teacher_classes(self):
-        return self.store.list_classes_for_teacher(self.current_user["email"])
+        return self.professor_repo.classes_for(self.current_user["email"])
     def render_professor_overview(self, parent):
-        students = self.store.list_students()
-        projects = self.store.list_projects()
+        students = self.professor_repo.list_students()
+        projects = self.professor_repo.list_projects()
         classes = self.teacher_classes()
         teams = []
         for class_record in classes:
-            teams.extend(self.store.list_teams_for_class(class_record["id"]))
+            teams.extend(self.professor_repo.list_teams_for_class(class_record["id"]))
         pending = [
             project
             for project in projects
@@ -406,12 +68,12 @@ class ProjectApprovalApp(tk.Tk):
         recent_card = tk.Frame(parent, bg="#f7f9fb", padx=16, pady=16)
         recent_card.pack(fill="x", pady=(0, 14))
         tk.Label(recent_card, text="New Students", font=("Segoe UI", 13, "bold"), bg="#f7f9fb", fg="#102a43").pack(anchor="w")
-        recent = self.store.list_recent_students()
+        recent = self.professor_repo.list_recent_students()
         if not recent:
             tk.Label(recent_card, text="No student accounts yet.", font=("Segoe UI", 10), bg="#f7f9fb", fg="#52606d").pack(anchor="w", pady=(6, 0))
         else:
             for student in recent:
-                line = f"{student['name']} | {student['email']} | Class: {self.store.get_class_name(student.get('class_id'))} | Team: {self.store.get_team_name(student.get('team_id'))}"
+                line = f"{student['name']} | {student['email']} | Class: {self.professor_repo.get_class_name(student.get('class_id'))} | Team: {self.professor_repo.get_team_name(student.get('team_id'))}"
                 tk.Label(recent_card, text=line, font=("Segoe UI", 10), bg="#f7f9fb", fg="#334e68", pady=2).pack(anchor="w")
         actions = tk.Frame(parent, bg="#eef8f1", padx=16, pady=16)
         actions.pack(fill="x")
@@ -471,12 +133,12 @@ class ProjectApprovalApp(tk.Tk):
         self.make_button(row, "Refresh List", self.show_professor_dashboard).pack(side="left")
         self.refresh_student_list()
     def refresh_student_list(self):
-        students = self.store.list_students()
+        students = self.professor_repo.list_students()
         students.sort(key=lambda user: user.get("created_at", ""), reverse=True)
         self.student_records = students
         self.student_listbox.delete(0, tk.END)
         for student in students:
-            label = f"{student['name']} | {student.get('status', 'Active')} | {self.store.get_class_name(student.get('class_id'))}"
+            label = f"{student['name']} | {student.get('status', 'Active')} | {self.professor_repo.get_class_name(student.get('class_id'))}"
             self.student_listbox.insert(tk.END, label)
     def _set_option_menu_values(self, menu_widget, variable, values):
         menu = menu_widget["menu"]
@@ -491,15 +153,15 @@ class ProjectApprovalApp(tk.Tk):
             return
         student = self.student_records[selection[0]]
         self.selected_student_id = student["id"]
-        project = self.store.get_project_for_student(student["email"])
+        project = self.professor_repo.get_project_for_student(student["email"])
         details = [
             f"Name: {student['name']}",
             f"Email: {student['email']}",
             f"Student ID: {student.get('student_id') or 'Not added'}",
             f"Department: {student.get('department') or 'Not added'}",
             f"Status: {student.get('status', 'Active')}",
-            f"Class: {self.store.get_class_name(student.get('class_id'))}",
-            f"Team: {self.store.get_team_name(student.get('team_id'))}",
+            f"Class: {self.professor_repo.get_class_name(student.get('class_id'))}",
+            f"Team: {self.professor_repo.get_team_name(student.get('team_id'))}",
             f"Project: {project['title'] if project else 'No project yet'}",
         ]
         self.student_detail_label.config(text="\n".join(details))
@@ -511,17 +173,17 @@ class ProjectApprovalApp(tk.Tk):
         self._set_option_menu_values(self.assign_class_menu, self.assign_class_var, class_options)
         current_class = "Not Assigned"
         if student.get("class_id"):
-            current_class_record = self.store.find_class_by_id(student["class_id"])
+            current_class_record = self.professor_repo.find_class_by_id(student["class_id"])
             if current_class_record:
                 current_class = f"{student['class_id']} - {current_class_record['name']} ({current_class_record['term']})"
         self.assign_class_var.set(current_class)
         team_options = ["Not Assigned"]
         if student.get("class_id"):
-            team_options.extend([f"{item['id']} - {item['name']}" for item in self.store.list_teams_for_class(student["class_id"])])
+            team_options.extend([f"{item['id']} - {item['name']}" for item in self.professor_repo.list_teams_for_class(student["class_id"])])
         self._set_option_menu_values(self.assign_team_menu, self.assign_team_var, team_options)
         current_team = "Not Assigned"
         if student.get("team_id"):
-            team = self.store.find_team_by_id(student["team_id"])
+            team = self.professor_repo.find_team_by_id(student["team_id"])
             if team:
                 current_team = f"{team['id']} - {team['name']}"
         self.assign_team_var.set(current_team)
@@ -531,21 +193,21 @@ class ProjectApprovalApp(tk.Tk):
             return
         notes = self.student_notes_text.get("1.0", "end").strip()
         status = self.student_status_var.get()
-        self.store.update_user(self.selected_student_id, {"notes": notes, "status": status})
+        self.professor_repo.update_user(self.selected_student_id, {"notes": notes, "status": status})
         class_value = self.assign_class_var.get()
         class_id = None if class_value == "Not Assigned" else int(class_value.split(" - ")[0])
-        self.store.assign_student_to_class(self.selected_student_id, class_id)
+        self.professor_repo.assign_student_to_class(self.selected_student_id, class_id)
         team_value = self.assign_team_var.get()
         team_id = None if team_value == "Not Assigned" else int(team_value.split(" - ")[0])
         if team_id is not None:
-            self.store.assign_student_to_team(self.selected_student_id, team_id)
+            self.professor_repo.assign_student_to_team(self.selected_student_id, team_id)
         self.professor_student_message.config(text="Student record updated.", fg="#1f7a45")
         self.refresh_student_list()
     def delete_selected_student(self):
         if not self.selected_student_id:
             self.professor_student_message.config(text="Select a student first.", fg="#c0392b")
             return
-        student = self.store.find_user_by_id(self.selected_student_id)
+        student = self.professor_repo.find_user_by_id(self.selected_student_id)
         if not student:
             self.professor_student_message.config(text="Student not found.", fg="#c0392b")
             return
@@ -555,7 +217,7 @@ class ProjectApprovalApp(tk.Tk):
         )
         if not confirmed:
             return
-        self.store.delete_student(self.selected_student_id)
+        self.professor_repo.delete_student(self.selected_student_id)
         self.selected_student_id = None
         self.student_detail_label.config(text="Student deleted. Select another student to manage their record.")
         self.student_notes_text.delete("1.0", "end")
@@ -590,7 +252,7 @@ class ProjectApprovalApp(tk.Tk):
         self.class_listbox = tk.Listbox(list_frame, font=("Segoe UI", 10), height=8)
         self.class_listbox.pack(fill="x", pady=(8, 8))
         for class_record in classes:
-            count = len([student for student in self.store.list_students() if student.get("class_id") == class_record["id"]])
+            count = len([student for student in self.professor_repo.list_students() if student.get("class_id") == class_record["id"]])
             line = f"{class_record['name']} ({class_record['term']}) | Students: {count} | Created: {class_record['created_at']}"
             self.class_listbox.insert(tk.END, line)
         self.make_button(list_frame, "Delete Selected Class", self.delete_selected_class).pack(anchor="w", pady=(4, 0))
@@ -600,7 +262,7 @@ class ProjectApprovalApp(tk.Tk):
         if not name or not term:
             self.class_message.config(text="Class name and term are required.", fg="#c0392b")
             return
-        self.store.create_class(self.current_user, name, term)
+        self.professor_repo.create_class(self.current_user, name, term)
         self.class_message.config(text="Class created.", fg="#1f7a45")
         self.show_professor_dashboard()
     def delete_selected_class(self):
@@ -614,7 +276,7 @@ class ProjectApprovalApp(tk.Tk):
         )
         if not confirmed:
             return
-        self.store.delete_class(class_record["id"])
+        self.professor_repo.delete_class(class_record["id"])
         self.class_message.config(text="Class deleted.", fg="#1f7a45")
         self.show_professor_dashboard()
     def render_professor_teams(self, parent):
@@ -646,12 +308,12 @@ class ProjectApprovalApp(tk.Tk):
         self.team_listbox.pack(fill="x", pady=(8, 8))
         any_team = False
         for class_record in teacher_classes:
-            teams = self.store.list_teams_for_class(class_record["id"])
+            teams = self.professor_repo.list_teams_for_class(class_record["id"])
             if not teams:
                 continue
             any_team = True
             for team in teams:
-                members = [self.store.find_user_by_id(member_id)["name"] for member_id in team.get("member_ids", []) if self.store.find_user_by_id(member_id)]
+                members = [self.professor_repo.find_user_by_id(member_id)["name"] for member_id in team.get("member_ids", []) if self.professor_repo.find_user_by_id(member_id)]
                 label = ", ".join(members) if members else "No members yet"
                 self.team_records.append(team)
                 self.team_listbox.insert(tk.END, f"{class_record['name']} ({class_record['term']}) | {team['name']} | Members: {label}")
@@ -667,7 +329,7 @@ class ProjectApprovalApp(tk.Tk):
             self.team_message.config(text="Choose a class and enter a team name.", fg="#c0392b")
             return
         class_id = int(class_value.split(" - ")[0])
-        self.store.create_team(class_id, team_name)
+        self.professor_repo.create_team(class_id, team_name)
         self.team_message.config(text="Team created.", fg="#1f7a45")
         self.show_professor_dashboard()
     def delete_selected_team(self):
@@ -681,7 +343,7 @@ class ProjectApprovalApp(tk.Tk):
         )
         if not confirmed:
             return
-        self.store.delete_team(team["id"])
+        self.professor_repo.delete_team(team["id"])
         self.team_message.config(text="Team deleted.", fg="#1f7a45")
         self.show_professor_dashboard()
     def render_professor_projects(self, parent):
@@ -746,7 +408,7 @@ class ProjectApprovalApp(tk.Tk):
         self.refresh_project_list()
     def refresh_project_list(self):
         teacher_class_ids = {item["id"] for item in self.teacher_classes()}
-        all_projects = self.store.list_projects()
+        all_projects = self.professor_repo.list_projects()
         self.project_records = [project for project in all_projects if not teacher_class_ids or project.get("class_id") in teacher_class_ids or project.get("class_id") is None]
         self.project_records.sort(key=lambda project: project.get("last_updated", ""), reverse=True)
         self.project_listbox.delete(0, tk.END)
@@ -762,8 +424,8 @@ class ProjectApprovalApp(tk.Tk):
         details = [
             f"Student: {project['student_name']}",
             f"Email: {project['student_email']}",
-            f"Class: {self.store.get_class_name(project.get('class_id'))}",
-            f"Team: {self.store.get_team_name(project.get('team_id'))}",
+            f"Class: {self.professor_repo.get_class_name(project.get('class_id'))}",
+            f"Team: {self.professor_repo.get_team_name(project.get('team_id'))}",
             f"Title: {project['title']}",
             f"Status: {project['status']}",
             f"Stage: {project.get('stage', 'Proposal')}",
@@ -798,7 +460,7 @@ class ProjectApprovalApp(tk.Tk):
             notification = "Professor approved your project."
         elif status == "Changes Requested":
             notification = "Professor requested changes to your project. Please review the professor notes."
-        project = self.store.update_project(self.selected_project_id, updates, notification=notification)
+        project = self.professor_repo.update_project(self.selected_project_id, updates, notification=notification)
         text = f"Project updated: {project['title']} is now {project['status']}." if status else "Project notes and stage updated."
         self.professor_project_message.config(text=text, fg="#1f7a45")
         self.refresh_project_list()
@@ -807,7 +469,7 @@ class ProjectApprovalApp(tk.Tk):
             self.professor_project_message.config(text="Select a project first.", fg="#c0392b")
             return
         try:
-            project = self.store.approve_progress_request(self.selected_project_id)
+            project = self.professor_repo.approve_progress_request(self.selected_project_id)
             self.add_professor_note_notification(project["id"], "Professor note about approved progress")
         except ValueError as error:
             self.professor_project_message.config(text=str(error), fg="#c0392b")
@@ -820,7 +482,7 @@ class ProjectApprovalApp(tk.Tk):
             self.professor_project_message.config(text="Select a project first.", fg="#c0392b")
             return
         try:
-            project = self.store.reject_progress_request(self.selected_project_id)
+            project = self.professor_repo.reject_progress_request(self.selected_project_id)
             self.add_professor_note_notification(project["id"], "Professor note about rejected progress")
         except ValueError as error:
             self.professor_project_message.config(text=str(error), fg="#c0392b")
@@ -833,7 +495,7 @@ class ProjectApprovalApp(tk.Tk):
             self.professor_project_message.config(text="Select a project first.", fg="#c0392b")
             return
         progress = self.professor_progress_scale.get()
-        current_project = self.store._find_project_or_raise(self.selected_project_id)
+        current_project = self.professor_repo._find_project_or_raise(self.selected_project_id)
         updates = {
             "progress": progress,
             "requested_progress": None,
@@ -841,7 +503,7 @@ class ProjectApprovalApp(tk.Tk):
         }
         if current_project.get("status") in {"Pending Approval", "Resubmitted"}:
             updates["status"] = "Reviewed"
-        project = self.store.update_project(
+        project = self.professor_repo.update_project(
             self.selected_project_id,
             updates,
             notification=self.progress_notification_with_note(progress),
@@ -859,7 +521,7 @@ class ProjectApprovalApp(tk.Tk):
         note = self.professor_notes_text.get("1.0", "end").strip()
         if not note:
             return
-        self.store.update_project(project_id, {}, notification=f"{prefix}: {note}")
+        self.professor_repo.update_project(project_id, {}, notification=f"{prefix}: {note}")
     def reload_selected_project_details(self):
         if not self.selected_project_id:
             return
