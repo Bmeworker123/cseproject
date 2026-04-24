@@ -13,5 +13,4 @@ class Header(tk.Frame):
         
         actions = tk.Frame(self, bg=bg)
         actions.pack(side="right")
-        Button(actions, "Back", logout_command).pack(side="left", padx=(0, 8))
         Button(actions, "Log Out", logout_command).pack(side="left")
