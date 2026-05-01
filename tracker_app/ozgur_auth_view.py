@@ -13,8 +13,8 @@ class AuthRepository:
     def create_account(self, name, email, password, role, student_id="", department=""):
         return self.store.create_user(name, email, password, role, student_id, department)
 
-    def sign_in(self, name, password):
-        return self.store.authenticate(name, password)
+    def sign_in(self, email, password):
+        return self.store.authenticate(email, password)
 
 
 class AuthMixin:
@@ -35,7 +35,7 @@ class AuthMixin:
         subtitle = (
             "Create a student or professor account, then use classes and teams inside the professor workspace."
             if self.auth_mode == "signup"
-            else "Sign in with the full name and password you created in this app."
+            else "Sign in with the email and password you created in this app."
         )
         
         Label(card, "Project Approval Tracker", size=17, bold=True, fg="#1f2933").pack(anchor="w", pady=(14, 0))
@@ -48,9 +48,8 @@ class AuthMixin:
         self.name_field = EntryField(card, "Full Name")
         self.name_field.pack(fill="x")
 
-        if self.auth_mode == "signup":
-            self.email_field = EntryField(card, "Email")
-            self.email_field.pack(fill="x")
+        self.email_field = EntryField(card, "Email")
+        self.email_field.pack(fill="x")
         
         self.password_field = EntryField(card, "Password", show="*")
         self.password_field.pack(fill="x")
@@ -103,10 +102,10 @@ class AuthMixin:
 
     def submit_auth(self):
         name = self.name_field.get().strip()
+        email = self.email_field.get().strip().lower()
         password = self.password_field.get().strip()
         try:
             if self.auth_mode == "signup":
-                email = self.email_field.get().strip().lower()
                 self.validate_email_password(email, password)
                 if not name:
                     raise ValueError("Full name is required.")
@@ -116,11 +115,8 @@ class AuthMixin:
                 self.auth_message.config(text="")
                 messagebox.showinfo("Account created", "Your account was created and you are now signed in.")
             else:
-                if not name:
-                    raise ValueError("Full name is required.")
-                if not password:
-                    raise ValueError("Password is required.")
-                self.current_user = self.auth_repo.sign_in(name, password)
+                self.validate_email_password(email, password)
+                self.current_user = self.auth_repo.sign_in(email, password)
                 self.auth_message.config(text="")
         except ValueError as error:
             self.auth_message.config(text=str(error))
