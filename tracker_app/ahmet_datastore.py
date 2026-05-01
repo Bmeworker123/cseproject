@@ -1,6 +1,5 @@
 import sqlite3
 import os
-import json
 from datetime import datetime
 from .migrations import DataMigration
 
@@ -9,10 +8,6 @@ class AhmetDataStore:
     def __init__(self, base_dir):
         self.data_dir = os.path.join(base_dir, "data")
         self.db_path = os.path.join(self.data_dir, "project_tracker.sqlite3")
-        self.users_file = os.path.join(self.data_dir, "users.json")
-        self.projects_file = os.path.join(self.data_dir, "projects.json")
-        self.classes_file = os.path.join(self.data_dir, "classes.json")
-        self.teams_file = os.path.join(self.data_dir, "teams.json")
         os.makedirs(self.data_dir, exist_ok=True)
         DataMigration(self).run_all()
 

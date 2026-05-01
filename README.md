@@ -20,7 +20,6 @@ python app.py
 
 - There are no demo accounts.
 - User-created accounts, projects, classes, teams, team members, and notifications are stored in SQL tables inside `data/project_tracker.sqlite3`.
-- Old JSON files are copied into SQLite automatically the first time the app runs with the new database code.
 - Teachers can manage student status (`Active`, `Needs Meeting`, `Archived`) and leave teacher notes.
 - Projects can be marked `Approved` or `Changes Requested`, with meeting status and stage updates.
 - The code is split across the group-owned files in [tracker_app](C:/Users/cavid/Documents/Codex/2026-04-22-a-tkinter-desktop-app-for-managing/tracker_app), with [app.py](C:/Users/cavid/Documents/Codex/2026-04-22-a-tkinter-desktop-app-for-managing/app.py) as the launcher.
