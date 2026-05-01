@@ -45,8 +45,11 @@ class AuthMixin:
         self.auth_message = Label(card, "", bg="white", fg="#c0392b", size=9)
         self.auth_message.pack(anchor="w", pady=(10, 0))
         
-        self.name_field = EntryField(card, "Full Name")
-        self.name_field.pack(fill="x")
+        if self.auth_mode == "signup":
+            self.name_field = EntryField(card, "Full Name")
+            self.name_field.pack(fill="x")
+        else:
+            self.name_field = None
 
         self.email_field = EntryField(card, "Email")
         self.email_field.pack(fill="x")
@@ -77,7 +80,10 @@ class AuthMixin:
         
         Label(card, "No demo accounts exist. Teachers can create classes and teams after signing in.", size=9, bg="white", fg="#7b8794", wraplength=500, justify="left").pack(anchor="w", pady=10)
         
-        self.name_field.focus_set()
+        if self.auth_mode == "signup":
+            self.name_field.focus_set()
+        else:
+            self.email_field.focus_set()
 
     def toggle_auth_mode(self):
         self.auth_mode = "signup" if self.auth_mode == "signin" else "signin"
@@ -101,7 +107,7 @@ class AuthMixin:
             raise ValueError("Password must be at least 6 characters.")
 
     def submit_auth(self):
-        name = self.name_field.get().strip()
+        name = self.name_field.get().strip() if self.name_field else ""
         email = self.email_field.get().strip().lower()
         password = self.password_field.get().strip()
         try:
