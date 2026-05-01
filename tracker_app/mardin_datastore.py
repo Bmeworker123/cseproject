@@ -5,8 +5,9 @@ import os
 import sqlite3
 from datetime import datetime
 
+from .migrations import Migrator, default_migrations
 
-class DataStore:
+class DataStoreCore:
     def __init__(self, base_dir):
         self.data_dir = os.path.join(base_dir, "data")
         self.db_path = os.path.join(self.data_dir, "project_tracker.sqlite3")
@@ -15,7 +16,7 @@ class DataStore:
         self.classes_file = os.path.join(self.data_dir, "classes.json")
         self.teams_file = os.path.join(self.data_dir, "teams.json")
         os.makedirs(self.data_dir, exist_ok=True)
-        self._create_tables()
+        self._run_migrations()
         self._migrate_json_files()
         self.migrate_data()
 
@@ -25,77 +26,8 @@ class DataStore:
         connection.execute("PRAGMA foreign_keys = ON")
         return connection
 
-    def _create_tables(self):
-        with self._connect() as db:
-            db.executescript(
-                """
-                CREATE TABLE IF NOT EXISTS users (
-                    id INTEGER PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    email TEXT NOT NULL UNIQUE,
-                    password_hash TEXT NOT NULL,
-                    role TEXT NOT NULL,
-                    status TEXT NOT NULL,
-                    created_at TEXT NOT NULL,
-                    last_login TEXT,
-                    student_id TEXT,
-                    department TEXT,
-                    notes TEXT,
-                    class_id INTEGER,
-                    team_id INTEGER
-                );
-
-                CREATE TABLE IF NOT EXISTS classes (
-                    id INTEGER PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    term TEXT NOT NULL,
-                    teacher_email TEXT NOT NULL,
-                    teacher_name TEXT NOT NULL,
-                    created_at TEXT NOT NULL
-                );
-
-                CREATE TABLE IF NOT EXISTS teams (
-                    id INTEGER PRIMARY KEY,
-                    class_id INTEGER,
-                    name TEXT NOT NULL,
-                    created_at TEXT NOT NULL
-                );
-
-                CREATE TABLE IF NOT EXISTS team_members (
-                    team_id INTEGER NOT NULL,
-                    student_id INTEGER NOT NULL,
-                    PRIMARY KEY (team_id, student_id)
-                );
-
-                CREATE TABLE IF NOT EXISTS projects (
-                    id INTEGER PRIMARY KEY,
-                    student_email TEXT NOT NULL UNIQUE,
-                    student_name TEXT NOT NULL,
-                    student_id TEXT,
-                    department TEXT,
-                    title TEXT NOT NULL,
-                    notes TEXT,
-                    progress INTEGER NOT NULL,
-                    requested_progress INTEGER,
-                    progress_request_status TEXT NOT NULL,
-                    status TEXT NOT NULL,
-                    professor_notes TEXT,
-                    stage TEXT NOT NULL,
-                    priority TEXT NOT NULL,
-                    meeting_status TEXT NOT NULL,
-                    last_updated TEXT NOT NULL,
-                    class_id INTEGER,
-                    team_id INTEGER
-                );
-
-                CREATE TABLE IF NOT EXISTS project_notifications (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    project_id INTEGER NOT NULL,
-                    message TEXT NOT NULL,
-                    created_order INTEGER NOT NULL
-                );
-                """
-            )
+    def _run_migrations(self):
+        Migrator(self._connect, default_migrations()).migrate_up()
 
     def _migrate_json_files(self):
         if self.list_users() or self.list_projects() or self.list_classes() or self.list_teams():
@@ -330,6 +262,8 @@ class DataStore:
         self.save_classes([self._class_defaults(item) for item in self.list_classes()])
         self.save_teams([self._team_defaults(item) for item in self.list_teams()])
 
+
+class AuthUserStore(DataStoreCore):
     def find_user_by_email(self, email):
         clean_email = email.strip().lower()
         for user in self.list_users():
@@ -387,25 +321,6 @@ class DataStore:
                 return user
         raise ValueError("User not found.")
 
-    def delete_student(self, student_id):
-        student = self.find_user_by_id(student_id)
-        if not student or student.get("role") != "student":
-            raise ValueError("Student not found.")
-        users = [user for user in self.list_users() if user["id"] != student_id]
-        teams = self.list_teams()
-        for team in teams:
-            if student_id in team.get("member_ids", []):
-                team["member_ids"] = [member_id for member_id in team["member_ids"] if member_id != student_id]
-        projects = [
-            project
-            for project in self.list_projects()
-            if project.get("student_email") != student["email"]
-        ]
-        self.save_users(users)
-        self.save_teams(teams)
-        self.save_projects(projects)
-        return student
-
     def list_students(self):
         return [user for user in self.list_users() if user["role"] == "student"]
 
@@ -417,6 +332,8 @@ class DataStore:
         students.sort(key=lambda user: user.get("created_at", ""), reverse=True)
         return students[:limit]
 
+
+class ProfessorClassStudentStore(DataStoreCore):
     def create_class(self, teacher, class_name, term):
         classes = self.list_classes()
         new_class = {
@@ -462,6 +379,38 @@ class DataStore:
                 return item
         return None
 
+    def delete_student(self, student_id):
+        student = self.find_user_by_id(student_id)
+        if not student or student.get("role") != "student":
+            raise ValueError("Student not found.")
+        users = [user for user in self.list_users() if user["id"] != student_id]
+        teams = self.list_teams()
+        for team in teams:
+            if student_id in team.get("member_ids", []):
+                team["member_ids"] = [member_id for member_id in team["member_ids"] if member_id != student_id]
+        projects = [
+            project
+            for project in self.list_projects()
+            if project.get("student_email") != student["email"]
+        ]
+        self.save_users(users)
+        self.save_teams(teams)
+        self.save_projects(projects)
+        return student
+
+    def assign_student_to_class(self, student_id, class_id):
+        student = self.find_user_by_id(student_id)
+        if not student:
+            raise ValueError("Student not found.")
+        self.assign_student_to_team(student_id, None)
+        updated = self.update_user(student_id, {"class_id": class_id})
+        project = self.get_project_for_student(updated["email"])
+        if project:
+            self.update_project(project["id"], {"class_id": class_id, "team_id": None})
+        return updated
+
+
+class TeamProjectStore(DataStoreCore):
     def create_team(self, class_id, team_name):
         teams = self.list_teams()
         new_team = {
@@ -501,17 +450,6 @@ class DataStore:
 
     def list_teams_for_class(self, class_id):
         return [item for item in self.list_teams() if item.get("class_id") == class_id]
-
-    def assign_student_to_class(self, student_id, class_id):
-        student = self.find_user_by_id(student_id)
-        if not student:
-            raise ValueError("Student not found.")
-        self.assign_student_to_team(student_id, None)
-        updated = self.update_user(student_id, {"class_id": class_id})
-        project = self.get_project_for_student(updated["email"])
-        if project:
-            self.update_project(project["id"], {"class_id": class_id, "team_id": None})
-        return updated
 
     def assign_student_to_team(self, student_id, team_id):
         teams = self.list_teams()
@@ -656,6 +594,8 @@ class DataStore:
                 return project
         raise ValueError("Project not found.")
 
+
+class StudentDashboardStore(DataStoreCore):
     def get_class_name(self, class_id):
         if not class_id:
             return "Not Assigned"
@@ -671,3 +611,12 @@ class DataStore:
         if not team:
             return "Not Assigned"
         return team["name"]
+
+
+class DataStore(
+    AuthUserStore,
+    ProfessorClassStudentStore,
+    TeamProjectStore,
+    StudentDashboardStore,
+):
+    pass

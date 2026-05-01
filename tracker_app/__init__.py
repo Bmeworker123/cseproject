@@ -1,1 +1,1 @@
-from .ahmet_ui import ProjectApprovalApp
+from .app.ui import ProjectApprovalApp
