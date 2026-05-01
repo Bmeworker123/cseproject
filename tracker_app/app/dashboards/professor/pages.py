@@ -4,17 +4,6 @@ from tkinter import messagebox
 from ....ui import Button, Label, Card, EntryField, TextField, OptionField, StatCard, Header
 
 
-class _ProfessorPageBase:
-    def __init__(self, dashboard):
-        self.dashboard = dashboard
-
-    @property
-    def app(self):
-        return self.dashboard.app
-
-    def teacher_classes(self):
-        return self.app.professor_repo.classes_for(self.app.current_user["email"])
-
 
 class ProfessorOverviewPage(_ProfessorPageBase):
     def render(self, parent):

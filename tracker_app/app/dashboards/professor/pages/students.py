@@ -1,6 +1,12 @@
+import tkinter as tk
+from tkinter import messagebox
+
+from .....base import ProfessorPageBase
+
+from .....ui import Button, Label, Card
 
 
-class ProfessorStudentsPage(_ProfessorPageBase):
+class ProfessorStudentsPage(ProfessorPageBase):
     def render(self, parent):
         Label(parent, text="Student Management", size=16, bold=True, bg="white", fg="#1f2933").pack(anchor="w")
         Label(parent, text="Inspect students, leave notes, set status, and assign them to classes and teams.", size=10, bg="white", fg="#52606d").pack(anchor="w", pady=6)
