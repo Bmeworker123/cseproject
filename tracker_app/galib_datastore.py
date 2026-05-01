@@ -8,7 +8,7 @@ class GalibDataStore(OzgurDataStore):
                 return project
         return None
 
-    def save_student_project(self, student, title, notes, progress, stage, priority):
+    def save_student_project(self, student, title, notes, priority):
         projects = self.list_projects()
         existing = self.get_project_for_student(student["email"])
         if existing:
@@ -19,20 +19,10 @@ class GalibDataStore(OzgurDataStore):
                     project["department"] = student.get("department", "")
                     project["title"] = title
                     project["notes"] = notes or "No notes yet."
-                    if progress != project.get("progress", 0):
-                        project["requested_progress"] = progress
-                        project["progress_request_status"] = "Pending"
-                        self._add_project_notification(
-                            project,
-                            f"Your progress change to {progress}% was sent to the professor for approval.",
-                        )
-                    project["stage"] = stage
                     project["priority"] = priority
                     project["class_id"] = student.get("class_id")
                     project["team_id"] = student.get("team_id")
                     project["last_updated"] = self._timestamp()
-                    if project["status"] == "Changes Requested":
-                        project["status"] = "Resubmitted"
                     self.save_projects(projects)
                     return project
         new_project = {
@@ -43,7 +33,7 @@ class GalibDataStore(OzgurDataStore):
             "department": student.get("department", ""),
             "title": title,
             "notes": notes or "No notes yet.",
-            "progress": progress,
+            "progress": 0,
             "requested_progress": None,
             "progress_request_status": "None",
             "notifications": [
@@ -51,7 +41,7 @@ class GalibDataStore(OzgurDataStore):
             ],
             "status": "Pending Approval",
             "professor_notes": "Awaiting professor review.",
-            "stage": stage,
+            "stage": "Not Set",
             "priority": priority,
             "meeting_status": "Not Scheduled",
             "last_updated": self._timestamp(),

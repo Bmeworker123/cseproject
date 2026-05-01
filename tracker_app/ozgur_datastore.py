@@ -27,6 +27,13 @@ class OzgurDataStore(AhmetDataStore):
                 return user
         return None
 
+    def find_user_by_name(self, name):
+        clean_name = name.strip().lower()
+        for user in self.list_users():
+            if user["name"].strip().lower() == clean_name:
+                return user
+        return None
+
     def find_user_by_id(self, user_id):
         for user in self.list_users():
             if user["id"] == user_id:
@@ -57,14 +64,14 @@ class OzgurDataStore(AhmetDataStore):
         self.save_users(users)
         return user
 
-    def authenticate(self, email, password):
-        user = self.find_user_by_email(email)
+    def authenticate(self, name, password):
+        user = self.find_user_by_name(name)
         if not user:
-            raise ValueError("Invalid email or password.")
+            raise ValueError("Invalid name or password.")
         if user.get("status") == "Archived":
             raise ValueError("This account is archived.")
         if not self._verify_password(password, user["password_hash"]):
-            raise ValueError("Invalid email or password.")
+            raise ValueError("Invalid name or password.")
         self.update_user(user["id"], {"last_login": self._timestamp()})
         return self.find_user_by_id(user["id"])
 
