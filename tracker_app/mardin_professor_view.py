@@ -293,7 +293,7 @@ class ProfessorMixin:
         if not name or not term:
             self.class_message.config(text="Class name and term are required.", fg="#c0392b")
             return
-        self.professor_repo.create_class(name, term, self.current_user["email"])
+        self.professor_repo.create_class(self.current_user, name, term)
         self.class_message.config(text=f"Class '{name}' created.", fg="#1f7a45")
         self.class_name_field.delete(0, tk.END)
         self.class_term_field.delete(0, tk.END)
@@ -366,7 +366,7 @@ class ProfessorMixin:
         classes = self.teacher_classes()
         class_record = next((c for c in classes if f"{c['name']} ({c['term']})" == class_value), None)
         if class_record:
-            self.professor_repo.create_team(team_name, class_record["id"])
+            self.professor_repo.create_team(class_record["id"], team_name)
             self.team_message.config(text=f"Team '{team_name}' added to class.", fg="#1f7a45")
             self.team_name_field.delete(0, tk.END)
             self.show_professor_dashboard()
