@@ -2,7 +2,7 @@ import os
 import sys
 import tkinter as tk
 
-from .ui import Button, Label, Card, EntryField, TextField, OptionField, StatCard, Header
+from .ui import Button
 from .galib_student_view import StudentMixin, StudentRepository
 from .mardin_datastore import DataStore
 from .mardin_professor_view import ProfessorMixin, ProfessorRepository
