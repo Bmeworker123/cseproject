@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 
-from .....base import ProfessorPageBase
+from ..base import ProfessorPageBase
 
 from .....ui import Button, Label, Card
 
