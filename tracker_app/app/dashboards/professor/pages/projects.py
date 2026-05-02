@@ -88,8 +88,11 @@ class ProfessorProjectsPage(ProfessorPageBase):
         self.project_listbox.delete(0, tk.END)
         students = self.app.professor_repo.list_students()
         for project in self.project_records:
-            owner = next((u for u in students if u["email"] == project["student_email"]), None)
-            name = owner["name"] if owner else "Unknown"
+            if project.get("team_id"):
+                name = f"Team: {self.app.professor_repo.get_team_name(project.get('team_id'))}"
+            else:
+                owner = next((u for u in students if u["email"] == project["student_email"]), None)
+                name = owner["name"] if owner else "Unknown"
             self.project_listbox.insert(tk.END, f"{name} | {project['title']} | {project['status']}")
 
     def load_selected_project(self):
@@ -101,8 +104,9 @@ class ProfessorProjectsPage(ProfessorPageBase):
         self.app.selected_project_id = project["id"]
         class_name = self.app.professor_repo.get_class_name(project.get("class_id")) or "Not Assigned"
         team_name = self.app.professor_repo.get_team_name(project.get("team_id")) or "Not Assigned"
+        owner_text = f"Team: {team_name}" if project.get("team_id") else f"Student: {project['student_email']}"
         detail_text = (
-            f"Student: {project['student_email']}\n"
+            f"{owner_text}\n"
             f"Class: {class_name} | Team: {team_name}\n"
             f"Priority: {project.get('priority', 'Medium')}\n"
             f"Last Updated: {project.get('last_updated', 'N/A')}"
@@ -147,7 +151,11 @@ class ProfessorProjectsPage(ProfessorPageBase):
         value = self.professor_progress_scale.get()
         self.app.professor_repo.update_project(
             self.app.selected_project_id,
-            {"progress": value, "requested_progress": None},
+            {
+                "progress": value,
+                "requested_progress": None,
+                "progress_request_status": "Professor Set",
+            },
             notification=f"Professor set progress to {value}%",
         )
         self.professor_project_message.config(text=f"Progress manually set to {value}%.", fg="#1f7a45")
@@ -164,7 +172,11 @@ class ProfessorProjectsPage(ProfessorPageBase):
             if req is not None:
                 self.app.professor_repo.update_project(
                     project["id"],
-                    {"progress": req, "requested_progress": None},
+                    {
+                        "progress": req,
+                        "requested_progress": None,
+                        "progress_request_status": "Approved",
+                    },
                     notification=f"Progress request for {req}% APPROVED.",
                 )
                 self.professor_project_message.config(text=f"Approved progress of {req}%.", fg="#1f7a45")
@@ -182,7 +194,10 @@ class ProfessorProjectsPage(ProfessorPageBase):
             if req is not None:
                 self.app.professor_repo.update_project(
                     project["id"],
-                    {"requested_progress": None},
+                    {
+                        "requested_progress": None,
+                        "progress_request_status": "Rejected",
+                    },
                     notification=f"Progress request for {req}% REJECTED.",
                 )
                 self.professor_project_message.config(text=f"Rejected progress request of {req}%.", fg="#c0392b")

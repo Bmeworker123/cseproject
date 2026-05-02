@@ -4,18 +4,24 @@ import os
 import sqlite3
 from datetime import datetime
 
+from ...migrations import Migrator, default_migrations
+
 
 class SqliteGateway:
     def __init__(self, base_dir):
         self.data_dir = os.path.join(base_dir, "data")
         self.db_path = os.path.join(self.data_dir, "project_tracker.sqlite3")
         os.makedirs(self.data_dir, exist_ok=True)
+        self._bootstrap_schema()
 
     def _connect(self):
         connection = sqlite3.connect(self.db_path)
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA foreign_keys = ON")
         return connection
+
+    def _bootstrap_schema(self):
+        Migrator(self._connect, default_migrations()).migrate_up()
 
     def timestamp(self):
         return datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -47,20 +53,40 @@ class SqliteGateway:
 
     def save_users(self, users):
         with self._connect() as db:
-            db.execute("DELETE FROM users")
-            db.executemany(
-                """
-                INSERT INTO users (
-                    id, name, email, password_hash, role, status, created_at, last_login,
-                    student_id, department, notes, class_id, team_id
+            existing_ids = {row["id"] for row in db.execute("SELECT id FROM users").fetchall()}
+            current_ids = {user.get("id") for user in users}
+
+            for user_id in existing_ids - current_ids:
+                db.execute("DELETE FROM users WHERE id = ?", (user_id,))
+
+            for user in users:
+                clean = self.user_defaults(user)
+                db.execute(
+                    """
+                    INSERT INTO users (
+                        id, name, email, password_hash, role, status, created_at, last_login,
+                        student_id, department, notes, class_id, team_id
+                    )
+                    VALUES (
+                        :id, :name, :email, :password_hash, :role, :status, :created_at, :last_login,
+                        :student_id, :department, :notes, :class_id, :team_id
+                    )
+                    ON CONFLICT(id) DO UPDATE SET
+                        name = excluded.name,
+                        email = excluded.email,
+                        password_hash = excluded.password_hash,
+                        role = excluded.role,
+                        status = excluded.status,
+                        created_at = excluded.created_at,
+                        last_login = excluded.last_login,
+                        student_id = excluded.student_id,
+                        department = excluded.department,
+                        notes = excluded.notes,
+                        class_id = excluded.class_id,
+                        team_id = excluded.team_id
+                    """,
+                    clean,
                 )
-                VALUES (
-                    :id, :name, :email, :password_hash, :role, :status, :created_at, :last_login,
-                    :student_id, :department, :notes, :class_id, :team_id
-                )
-                """,
-                [self.user_defaults(user) for user in users],
-            )
 
     def list_projects(self):
         with self._connect() as db:
@@ -80,8 +106,13 @@ class SqliteGateway:
 
     def save_projects(self, projects):
         with self._connect() as db:
-            db.execute("DELETE FROM project_notifications")
-            db.execute("DELETE FROM projects")
+            existing_ids = {row["id"] for row in db.execute("SELECT id FROM projects").fetchall()}
+            current_ids = {project.get("id") for project in projects}
+
+            for project_id in existing_ids - current_ids:
+                db.execute("DELETE FROM project_notifications WHERE project_id = ?", (project_id,))
+                db.execute("DELETE FROM projects WHERE id = ?", (project_id,))
+
             for project in projects:
                 clean = self.project_defaults(project)
                 db.execute(
@@ -98,9 +129,28 @@ class SqliteGateway:
                         :professor_notes, :stage, :priority, :meeting_status, :last_updated,
                         :class_id, :team_id
                     )
+                    ON CONFLICT(id) DO UPDATE SET
+                        student_email = excluded.student_email,
+                        student_name = excluded.student_name,
+                        student_id = excluded.student_id,
+                        department = excluded.department,
+                        title = excluded.title,
+                        notes = excluded.notes,
+                        progress = excluded.progress,
+                        requested_progress = excluded.requested_progress,
+                        progress_request_status = excluded.progress_request_status,
+                        status = excluded.status,
+                        professor_notes = excluded.professor_notes,
+                        stage = excluded.stage,
+                        priority = excluded.priority,
+                        meeting_status = excluded.meeting_status,
+                        last_updated = excluded.last_updated,
+                        class_id = excluded.class_id,
+                        team_id = excluded.team_id
                     """,
                     clean,
                 )
+                db.execute("DELETE FROM project_notifications WHERE project_id = ?", (clean["id"],))
                 for index, message in enumerate(clean["notifications"]):
                     db.execute(
                         "INSERT INTO project_notifications (project_id, message, created_order) VALUES (?, ?, ?)",
@@ -114,11 +164,27 @@ class SqliteGateway:
 
     def save_classes(self, classes):
         with self._connect() as db:
-            db.execute("DELETE FROM classes")
-            db.executemany(
-                "INSERT INTO classes (id, name, term, teacher_email, teacher_name, created_at) VALUES (:id, :name, :term, :teacher_email, :teacher_name, :created_at)",
-                [self.class_defaults(item) for item in classes],
-            )
+            existing_ids = {row["id"] for row in db.execute("SELECT id FROM classes").fetchall()}
+            current_ids = {item.get("id") for item in classes}
+
+            for class_id in existing_ids - current_ids:
+                db.execute("DELETE FROM classes WHERE id = ?", (class_id,))
+
+            for item in classes:
+                clean = self.class_defaults(item)
+                db.execute(
+                    """
+                    INSERT INTO classes (id, name, term, teacher_email, teacher_name, created_at)
+                    VALUES (:id, :name, :term, :teacher_email, :teacher_name, :created_at)
+                    ON CONFLICT(id) DO UPDATE SET
+                        name = excluded.name,
+                        term = excluded.term,
+                        teacher_email = excluded.teacher_email,
+                        teacher_name = excluded.teacher_name,
+                        created_at = excluded.created_at
+                    """,
+                    clean,
+                )
 
     def list_teams(self):
         with self._connect() as db:
@@ -136,14 +202,27 @@ class SqliteGateway:
 
     def save_teams(self, teams):
         with self._connect() as db:
-            db.execute("DELETE FROM team_members")
-            db.execute("DELETE FROM teams")
+            existing_ids = {row["id"] for row in db.execute("SELECT id FROM teams").fetchall()}
+            current_ids = {team.get("id") for team in teams}
+
+            for team_id in existing_ids - current_ids:
+                db.execute("DELETE FROM team_members WHERE team_id = ?", (team_id,))
+                db.execute("DELETE FROM teams WHERE id = ?", (team_id,))
+
             for team in teams:
                 clean = self.team_defaults(team)
                 db.execute(
-                    "INSERT INTO teams (id, class_id, name, created_at) VALUES (:id, :class_id, :name, :created_at)",
+                    """
+                    INSERT INTO teams (id, class_id, name, created_at)
+                    VALUES (:id, :class_id, :name, :created_at)
+                    ON CONFLICT(id) DO UPDATE SET
+                        class_id = excluded.class_id,
+                        name = excluded.name,
+                        created_at = excluded.created_at
+                    """,
                     clean,
                 )
+                db.execute("DELETE FROM team_members WHERE team_id = ?", (clean["id"],))
                 for student_id in clean["member_ids"]:
                     db.execute("INSERT INTO team_members (team_id, student_id) VALUES (?, ?)", (clean["id"], student_id))
 

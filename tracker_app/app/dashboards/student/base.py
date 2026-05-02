@@ -8,3 +8,6 @@ class StudentPageBase:
 
     def current_project(self):
         return self.app.student_repo.project_for(self.app.current_user)
+
+    def is_team_project(self):
+        return bool(self.app.current_user.get("team_id"))

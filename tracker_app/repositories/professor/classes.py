@@ -34,17 +34,23 @@ class ProfessorClassRepository(RepositoryBase):
         if not class_record:
             raise ValueError("Class not found.")
         classes = [item for item in self.db.list_classes() if item["id"] != class_id]
+        removed_team_ids = {team["id"] for team in self.db.list_teams() if team.get("class_id") == class_id}
         teams = [team for team in self.db.list_teams() if team.get("class_id") != class_id]
         users = self.db.list_users()
         for user in users:
             if user.get("class_id") == class_id:
                 user["class_id"] = None
+            if user.get("team_id") in removed_team_ids:
                 user["team_id"] = None
-        projects = self.db.list_projects()
-        for project in projects:
+        existing_projects = self.db.list_projects()
+        projects = []
+        for project in existing_projects:
+            if project.get("team_id") in removed_team_ids:
+                continue
             if project.get("class_id") == class_id:
                 project["class_id"] = None
                 project["team_id"] = None
+            projects.append(project)
         self.db.save_classes(classes)
         self.db.save_teams(teams)
         self.db.save_users(users)

@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS team_members (
 
 CREATE TABLE IF NOT EXISTS projects (
     id INTEGER PRIMARY KEY,
-    student_email TEXT NOT NULL UNIQUE,
+    student_email TEXT NOT NULL,
     student_name TEXT NOT NULL,
     student_id TEXT,
     department TEXT,
@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS projects (
     meeting_status TEXT NOT NULL,
     last_updated TEXT NOT NULL,
     class_id INTEGER,
-    team_id INTEGER
+    team_id INTEGER UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS project_notifications (

@@ -12,7 +12,11 @@ class StudentProjectFormPage(StudentPageBase):
 
     def render(self, parent):
         project = self.app.student_repo.project_for(self.app.current_user)
-        render_page_header(parent, "Project Form", "Submit your project and keep stage, priority, and progress updated.")
+        if self.is_team_project():
+            subtitle = "Submit your shared team project and keep stage, priority, and progress updated for everyone on the team."
+        else:
+            subtitle = "Submit your project and keep stage, priority, and progress updated."
+        render_page_header(parent, "Project Form", subtitle)
 
         self.student_form_message = Label(parent, text="", size=10, bg="white", fg="#1f7a45")
         self.student_form_message.pack(anchor="w", pady=(4, 8))
@@ -22,6 +26,15 @@ class StudentProjectFormPage(StudentPageBase):
 
         self.project_title_field = EntryField(form, "Project Title")
         self.project_title_field.pack(fill="x")
+
+        if self.is_team_project():
+            Label(
+                form,
+                text=f"This project is shared with team: {self.app.student_repo.team_name(self.app.current_user.get('team_id'))}",
+                size=10,
+                bg="white",
+                fg="#52606d",
+            ).pack(anchor="w", pady=(0, 10))
 
         self.project_notes_field = TextField(form, "Project Description / Notes", height=6)
         self.project_notes_field.pack(fill="x")
@@ -72,5 +85,5 @@ class StudentProjectFormPage(StudentPageBase):
         if project.get("requested_progress") is not None:
             message = f"Project saved. Progress change to {project['requested_progress']}% is waiting for professor approval."
         else:
-            message = f"Project saved with status: {project['status']}"
+            message = "Team project saved successfully." if self.is_team_project() else f"Project saved with status: {project['status']}"
         self.student_form_message.config(text=message, fg="#1f7a45")

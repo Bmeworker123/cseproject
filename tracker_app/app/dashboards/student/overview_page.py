@@ -12,6 +12,8 @@ class StudentOverviewPage(StudentPageBase):
     def render(self, parent):
         user = self.refresh_user()
         project = self.current_project()
+        project_heading = "Team Project Summary" if self.is_team_project() else "Project Summary"
+        empty_message = "No team project yet. Open Project Form to create one for your team." if self.is_team_project() else "No project yet. Open Project Form to create one."
 
         render_page_header(parent, "Overview", "Your student profile, class, team, and latest project summary.")
 
@@ -33,24 +35,29 @@ class StudentOverviewPage(StudentPageBase):
 
         summary = Card(top, bg="#eef8f1")
         summary.pack(side="left", fill="both", expand=True)
-        render_section_title(summary, "Project Summary", bg="#eef8f1", fg="#14532d")
+        render_section_title(summary, project_heading, bg="#eef8f1", fg="#14532d")
 
         if not project:
-            Label(summary, text="No project yet. Open Project Form to create one.", size=10, bg="#eef8f1", fg="#1f7a45").pack(anchor="w", pady=(6, 0))
+            Label(summary, text=empty_message, size=10, bg="#eef8f1", fg="#1f7a45").pack(anchor="w", pady=(6, 0))
         else:
-            render_detail_lines(summary, [
+            details = []
+            if self.is_team_project():
+                details.append(f"Team Project: {self.app.student_repo.team_name(user.get('team_id'))}")
+            details.extend([
                 f"Title: {project['title']}",
                 f"Stage: {project.get('stage', 'N/A')}",
                 f"Status: {project['status']}",
                 f"Progress: {project['progress']}%",
-            ], bg="#eef8f1", fg="#1f7a45")
+            ])
+            render_detail_lines(summary, details, bg="#eef8f1", fg="#1f7a45")
 
         box = Card(parent, bg="#fff7ed")
         box.pack(fill="x", pady=(18, 0))
         render_section_title(box, "Notifications", bg="#fff7ed", fg="#9a3412")
 
-        if not user.get("notifications"):
+        notifications = project.get("notifications", []) if project else []
+        if not notifications:
             Label(box, text="No notifications yet.", size=10, bg="#fff7ed", fg="#b45309").pack(anchor="w", pady=(6, 0))
         else:
-            for notification in user["notifications"]:
+            for notification in notifications:
                 Label(box, text=notification, size=10, bg="#fff7ed", fg="#7c2d12", wraplength=760, justify="left").pack(anchor="w", pady=2)
