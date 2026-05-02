@@ -27,3 +27,17 @@ class StudentUserRepository(RepositoryBase):
             if item["id"] == team_id:
                 return item["name"]
         return "Not Assigned"
+
+    def teammate_names(self, user):
+        team_id = user.get("team_id")
+        if not team_id:
+            return []
+
+        teammates = [
+            teammate["name"]
+            for teammate in self.db.list_users()
+            if teammate.get("role") == "student"
+            and teammate.get("team_id") == team_id
+            and teammate.get("id") != user.get("id")
+        ]
+        return sorted(teammates)

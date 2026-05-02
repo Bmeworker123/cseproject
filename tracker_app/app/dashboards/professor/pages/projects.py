@@ -7,7 +7,7 @@ from .....ui import Button, Label, Card
 class ProfessorProjectsPage(ProfessorPageBase):
     def render(self, parent):
         Label(parent, text="Project Management", size=16, bold=True, bg="white", fg="#1f2933").pack(anchor="w")
-        Label(parent, text="Review team projects and approve or request changes.", size=10, bg="white", fg="#52606d").pack(anchor="w", pady=6)
+        Label(parent, text="Review team projects and approve or reject them.", size=10, bg="white", fg="#52606d").pack(anchor="w", pady=6)
         self.professor_project_message = Label(parent, text="", size=10, bg="white", fg="#1f7a45")
         self.professor_project_message.pack(anchor="w", pady=(4, 8))
 
@@ -36,7 +36,7 @@ class ProfessorProjectsPage(ProfessorPageBase):
         action_row = tk.Frame(right, bg="white")
         action_row.pack(anchor="w")
         Button(action_row, "Approve", lambda: self.update_project_status("Approved"), primary=True).pack(side="left", padx=(0, 8))
-        Button(action_row, "Request Changes", lambda: self.update_project_status("Changes Requested")).pack(side="left", padx=(0, 8))
+        Button(action_row, "Reject", lambda: self.update_project_status("Rejected")).pack(side="left")
 
         self.refresh_project_list()
 
@@ -80,7 +80,7 @@ class ProfessorProjectsPage(ProfessorPageBase):
             self.app.selected_project_id,
             updates,
         )
-        self.professor_project_message.config(text="Project approval updated.", fg="#1f7a45" if status == "Approved" else "#c0392b")
+        self.professor_project_message.config(text="Project status updated.", fg="#1f7a45" if status == "Approved" else "#c0392b")
         self.refresh_project_list()
         self.reload_selected_project_details()
 

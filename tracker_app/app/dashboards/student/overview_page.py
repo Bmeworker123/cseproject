@@ -42,3 +42,13 @@ class StudentOverviewPage(StudentPageBase):
                 f"Title: {project['title']}",
                 f"Approval Status: {project.get('approval_status', 'Pending Approval')}",
             ], bg="#eef8f1", fg="#1f7a45")
+
+        teammates = self.app.student_repo.teammate_names(user)
+        team_card = Card(parent, bg="#fff7ed")
+        team_card.pack(fill="x", pady=(12, 0))
+        render_section_title(team_card, "Teammates", bg="#fff7ed", fg="#7c2d12")
+
+        if not teammates:
+            Label(team_card, text="No teammates assigned yet.", size=10, bg="#fff7ed", fg="#9a3412").pack(anchor="w", pady=(6, 0))
+        else:
+            render_detail_lines(team_card, [f"- {name}" for name in teammates], bg="#fff7ed", fg="#9a3412")

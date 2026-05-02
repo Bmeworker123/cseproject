@@ -63,7 +63,6 @@ class ProfessorStudentsPage(ProfessorPageBase):
         row = tk.Frame(right, bg="white")
         row.pack(fill="x")
         Button(row, "Save Student Changes", self.save_student_changes, primary=True).pack(side="left", padx=(0, 8))
-        Button(row, "Delete Student", self.delete_selected_student).pack(side="left", padx=(0, 8))
         Button(row, "Refresh List", self.dashboard.render).pack(side="left")
 
         self.refresh_student_list()
@@ -165,12 +164,3 @@ class ProfessorStudentsPage(ProfessorPageBase):
         self.app.professor_repo.update_user(self.app.selected_student_id, updates)
         self.professor_student_message.config(text="Student record updated successfully.", fg="#1f7a45")
         self.refresh_student_list()
-
-    def delete_selected_student(self):
-        if not self.app.selected_student_id:
-            return
-        if messagebox.askyesno("Confirm Delete", "Are you sure you want to delete this student?"):
-            self.app.professor_repo.delete_student(self.app.selected_student_id)
-            self.app.selected_student_id = None
-            self.professor_student_message.config(text="Student deleted.", fg="#1f7a45")
-            self.refresh_student_list()
