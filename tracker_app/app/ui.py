@@ -1,11 +1,12 @@
 import os
 import sys
+import sqlite3
 import tkinter as tk
 
 from ..base import AppState, Dashboard
-from ..mardin_datastore import DataStore
+from ..migrations import Migrator, default_migrations
 from ..repositories import AuthRepository, StudentRepository, ProfessorRepository
-from .auth_page import AuthPage
+from .auth import AuthPage
 from .dashboards.student.dashboard import StudentDashboardPage
 from .dashboards.professor.pages import ProfessorDashboardPage
 
@@ -18,10 +19,21 @@ class ProjectApprovalApp(Dashboard, tk.Tk):
         else:
             base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
-        self.store = DataStore(base_dir)
-        self.auth_repo = AuthRepository(self.store)
-        self.student_repo = StudentRepository(self.store)
-        self.professor_repo = ProfessorRepository(self.store)
+        data_dir = os.path.join(base_dir, "data")
+        db_path = os.path.join(data_dir, "project_tracker.sqlite3")
+        os.makedirs(data_dir, exist_ok=True)
+
+        def connect():
+            connection = sqlite3.connect(db_path)
+            connection.row_factory = sqlite3.Row
+            connection.execute("PRAGMA foreign_keys = ON")
+            return connection
+
+        Migrator(connect, default_migrations()).migrate_up()
+
+        self.auth_repo = AuthRepository(base_dir)
+        self.student_repo = StudentRepository(base_dir)
+        self.professor_repo = ProfessorRepository(base_dir)
         self.state = AppState()
 
         self.title("Student Project Tracker")
