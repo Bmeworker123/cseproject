@@ -1,17 +1,18 @@
 import tkinter as tk
 
 from ....ui import Button, Label, EntryField, TextField, OptionField
+from .base import StudentPageBase
+from .components import render_page_header
 
 
-class StudentProjectFormPage:
+class StudentProjectFormPage(StudentPageBase):
     def __init__(self, app, navigate):
-        self.app = app
+        super().__init__(app)
         self.navigate = navigate
 
     def render(self, parent):
         project = self.app.student_repo.project_for(self.app.current_user)
-        Label(parent, text="Project Form", size=16, bold=True, bg="white", fg="#1f2933").pack(anchor="w")
-        Label(parent, text="Submit your project and keep stage, priority, and progress updated.", size=10, bg="white", fg="#52606d").pack(anchor="w", pady=6)
+        render_page_header(parent, "Project Form", "Submit your project and keep stage, priority, and progress updated.")
 
         self.student_form_message = Label(parent, text="", size=10, bg="white", fg="#1f7a45")
         self.student_form_message.pack(anchor="w", pady=(4, 8))
@@ -65,7 +66,7 @@ class StudentProjectFormPage:
             self.student_form_message.config(text="Project title is required.", fg="#c0392b")
             return
 
-        self.app.current_user = self.app.student_repo.refresh_user(self.app.current_user["id"])
+        self.refresh_user()
         project = self.app.student_repo.save_project(self.app.current_user, title, notes, progress, stage, priority)
 
         if project.get("requested_progress") is not None:
