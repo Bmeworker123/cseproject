@@ -72,55 +72,21 @@ class StudentProjectRepositoryTests(unittest.TestCase):
         self.assertEqual(35, second_update["requested_progress"])
         self.assertEqual("Pending", second_update["progress_request_status"])
 
-    def test_student_pairing_creates_team_and_updates_members(self):
+    def test_team_members_for_returns_assigned_teammates(self):
         professor = self.auth_repo.create_account("Prof One", "prof@example.com", "secret123", "professor")
         student = self.auth_repo.create_account("Student One", "student@example.com", "secret123", "student")
         partner = self.auth_repo.create_account("Student Two", "partner@example.com", "secret123", "student")
 
         klass = self.class_repo.create_class(professor, "Senior Design", "Spring 2026")
-        self.professor_user_repo.update_user(student["id"], {"class_id": klass["id"]})
-        self.professor_user_repo.update_user(partner["id"], {"class_id": klass["id"]})
-
-        result = self.student_repo.pair_with_student(student["id"], partner["id"])
-        updated_student = self.professor_user_repo.refresh_user(student["id"])
-        updated_partner = self.professor_user_repo.refresh_user(partner["id"])
-
-        self.assertIsNotNone(updated_student["team_id"])
-        self.assertEqual(updated_student["team_id"], updated_partner["team_id"])
-        self.assertEqual(result["team_id"], updated_student["team_id"])
-        self.assertEqual(2, len(result["members"]))
-
-    def test_available_pairing_candidates_include_classmates_without_teams(self):
-        professor = self.auth_repo.create_account("Prof One", "prof@example.com", "secret123", "professor")
-        student = self.auth_repo.create_account("Student One", "student@example.com", "secret123", "student")
-        partner = self.auth_repo.create_account("Student Two", "partner@example.com", "secret123", "student")
-
-        klass = self.class_repo.create_class(professor, "Senior Design", "Spring 2026")
-        self.professor_user_repo.update_user(student["id"], {"class_id": klass["id"]})
-        self.professor_user_repo.update_user(partner["id"], {"class_id": klass["id"]})
+        team = self.team_repo.create_team(klass["id"], "Team A")
+        self.professor_user_repo.update_user(student["id"], {"class_id": klass["id"], "team_id": team["id"]})
+        self.professor_user_repo.update_user(partner["id"], {"class_id": klass["id"], "team_id": team["id"]})
         student = self.professor_user_repo.refresh_user(student["id"])
 
-        candidates = self.student_repo.available_pairing_candidates(student)
+        members = self.student_repo.team_members_for(student)
 
-        self.assertEqual(1, len(candidates))
-        self.assertEqual(partner["id"], candidates[0]["id"])
-
-    def test_student_can_leave_team(self):
-        professor = self.auth_repo.create_account("Prof One", "prof@example.com", "secret123", "professor")
-        student = self.auth_repo.create_account("Student One", "student@example.com", "secret123", "student")
-        partner = self.auth_repo.create_account("Student Two", "partner@example.com", "secret123", "student")
-
-        klass = self.class_repo.create_class(professor, "Senior Design", "Spring 2026")
-        self.professor_user_repo.update_user(student["id"], {"class_id": klass["id"]})
-        self.professor_user_repo.update_user(partner["id"], {"class_id": klass["id"]})
-        self.student_repo.pair_with_student(student["id"], partner["id"])
-
-        self.student_repo.leave_team(student["id"])
-        updated_student = self.professor_user_repo.refresh_user(student["id"])
-        updated_partner = self.professor_user_repo.refresh_user(partner["id"])
-
-        self.assertIsNone(updated_student["team_id"])
-        self.assertIsNotNone(updated_partner["team_id"])
+        self.assertEqual(2, len(members))
+        self.assertEqual(["Student One", "Student Two"], [member["name"] for member in members])
 
 
 if __name__ == "__main__":
