@@ -50,7 +50,12 @@ class StudentUserRepository(RepositoryBase):
         return classmates
 
     def available_pairing_candidates(self, user):
-        return [item for item in self.classmates_for(user) if item.get("team_id") != user.get("team_id")]
+        user_team_id = user.get("team_id")
+        return [
+            item
+            for item in self.classmates_for(user)
+            if not (user_team_id is not None and item.get("team_id") == user_team_id)
+        ]
 
     def pair_with_student(self, user_id, partner_id):
         user = self.refresh_user(user_id)

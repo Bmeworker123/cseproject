@@ -90,6 +90,21 @@ class StudentProjectRepositoryTests(unittest.TestCase):
         self.assertEqual(result["team_id"], updated_student["team_id"])
         self.assertEqual(2, len(result["members"]))
 
+    def test_available_pairing_candidates_include_classmates_without_teams(self):
+        professor = self.auth_repo.create_account("Prof One", "prof@example.com", "secret123", "professor")
+        student = self.auth_repo.create_account("Student One", "student@example.com", "secret123", "student")
+        partner = self.auth_repo.create_account("Student Two", "partner@example.com", "secret123", "student")
+
+        klass = self.class_repo.create_class(professor, "Senior Design", "Spring 2026")
+        self.professor_user_repo.update_user(student["id"], {"class_id": klass["id"]})
+        self.professor_user_repo.update_user(partner["id"], {"class_id": klass["id"]})
+        student = self.professor_user_repo.refresh_user(student["id"])
+
+        candidates = self.student_repo.available_pairing_candidates(student)
+
+        self.assertEqual(1, len(candidates))
+        self.assertEqual(partner["id"], candidates[0]["id"])
+
     def test_student_can_leave_team(self):
         professor = self.auth_repo.create_account("Prof One", "prof@example.com", "secret123", "professor")
         student = self.auth_repo.create_account("Student One", "student@example.com", "secret123", "student")
