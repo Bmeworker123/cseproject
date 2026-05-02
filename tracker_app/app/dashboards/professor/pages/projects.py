@@ -1,7 +1,7 @@
 import tkinter as tk
 
 from ..base import ProfessorPageBase
-from .....ui import Button, Label, Card, TextField, OptionField
+from .....ui import Button, Label, Card, TextField
 
 
 class ProfessorProjectsPage(ProfessorPageBase):
@@ -54,18 +54,6 @@ class ProfessorProjectsPage(ProfessorPageBase):
         Button(progress_actions, "Reject Progress", self.reject_progress_request).pack(side="left", padx=(0, 8))
         Button(progress_actions, "Save Professor Progress", self.save_professor_progress).pack(side="left")
 
-        row = tk.Frame(right, bg="white")
-        row.pack(fill="x", pady=(0, 8))
-        left_controls = tk.Frame(row, bg="white")
-        left_controls.pack(side="left", fill="x", expand=True, padx=(0, 8))
-        self.meeting_status_var = tk.StringVar(value="Pending")
-        OptionField(left_controls, "Meeting Status", self.meeting_status_var, ["Pending", "Scheduled", "Completed", "Cancelled"]).pack(fill="x")
-
-        right_controls = tk.Frame(row, bg="white")
-        right_controls.pack(side="left", fill="x", expand=True)
-        self.project_stage_var = tk.StringVar(value="Proposal")
-        OptionField(right_controls, "Stage", self.project_stage_var, ["Proposal", "Requirement Analysis", "Design", "Development", "Testing", "Deployment"]).pack(fill="x")
-
         self.professor_notes_field = TextField(right, "Professor Notes", height=3)
         self.professor_notes_field.pack(fill="x")
 
@@ -115,8 +103,6 @@ class ProfessorProjectsPage(ProfessorPageBase):
         self.professor_notes_field.delete("1.0", tk.END)
         self.professor_notes_field.insert("1.0", project.get("professor_notes", ""))
         self.professor_progress_scale.set(project.get("progress", 0))
-        self.meeting_status_var.set(project.get("meeting_status", "Pending"))
-        self.project_stage_var.set(project.get("stage", "Proposal"))
 
         req = project.get("requested_progress")
         if req is not None:
@@ -129,9 +115,7 @@ class ProfessorProjectsPage(ProfessorPageBase):
             return
 
         notes = self.professor_notes_field.get("1.0", "end").strip()
-        meeting = self.meeting_status_var.get()
-        stage = self.project_stage_var.get()
-        updates = {"professor_notes": notes, "meeting_status": meeting, "stage": stage}
+        updates = {"professor_notes": notes}
         if status:
             updates["status"] = status
 
