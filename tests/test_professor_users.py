@@ -77,6 +77,26 @@ class ProfessorUserRepositoryTests(unittest.TestCase):
         remaining_projects = self.student_repo.db.list_projects()
         self.assertEqual([], remaining_projects)
 
+    def test_deleting_team_member_refreshes_shared_project_metadata(self):
+        professor = self.auth_repo.create_account("Prof One", "prof@example.com", "secret123", "professor")
+        s1 = self.auth_repo.create_account("Student One", "s1@example.com", "secret123", "student", student_id="S-1")
+        s2 = self.auth_repo.create_account("Student Two", "s2@example.com", "secret123", "student", student_id="S-2")
+
+        klass = self.class_repo.create_class(professor, "Senior Design", "Spring 2026")
+        team = self.team_repo.create_team(klass["id"], "Team A")
+        self.professor_user_repo.update_user(s1["id"], {"class_id": klass["id"], "team_id": team["id"]})
+        self.professor_user_repo.update_user(s2["id"], {"class_id": klass["id"], "team_id": team["id"]})
+
+        s1 = self.professor_user_repo.refresh_user(s1["id"])
+        self.student_repo.save_project(s1, "Project A", "Notes A", 10, "Medium")
+
+        self.professor_user_repo.delete_student(s1["id"])
+        project = self.student_repo.db.list_projects()[0]
+
+        self.assertEqual(team["id"], project["team_id"])
+        self.assertEqual("s2@example.com", project["student_email"])
+        self.assertIn("Student Two", project["student_name"])
+
 
 if __name__ == "__main__":
     unittest.main()

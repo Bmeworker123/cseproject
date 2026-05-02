@@ -59,6 +59,13 @@ class StudentProjectRepository(RepositoryBase):
                             project,
                             f"Your progress change to {progress}% was sent to the professor for approval.",
                         )
+                    elif requested_progress is not None and progress == current_progress:
+                        project["requested_progress"] = None
+                        project["progress_request_status"] = "None"
+                        self.db.add_project_notification(
+                            project,
+                            "Your pending progress change request was cancelled.",
+                        )
                     elif requested_progress is None:
                         project["progress_request_status"] = "None"
                     project["priority"] = priority

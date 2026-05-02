@@ -168,6 +168,9 @@ class ProfessorUserRepository(RepositoryBase):
             if project_team_id:
                 if project_team_id == student.get("team_id") and remaining_team_sizes.get(project_team_id, 0) == 0:
                     continue
+                if project_team_id == student.get("team_id") and remaining_team_sizes.get(project_team_id, 0) > 0:
+                    remaining_member = self._first_user_for_team(users, project_team_id)
+                    self._refresh_project_details_for_user(users, teams, project, remaining_member)
                 projects.append(project)
                 continue
             if project.get("student_email") != student["email"]:

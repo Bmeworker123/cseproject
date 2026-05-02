@@ -72,6 +72,32 @@ class StudentProjectRepositoryTests(unittest.TestCase):
         self.assertEqual(35, second_update["requested_progress"])
         self.assertEqual("Pending", second_update["progress_request_status"])
 
+    def test_reverting_to_current_progress_clears_pending_request(self):
+        professor = self.auth_repo.create_account("Prof One", "prof@example.com", "secret123", "professor")
+        student = self.auth_repo.create_account(
+            "Student One",
+            "student@example.com",
+            "secret123",
+            "student",
+            student_id="S-1",
+            department="CS",
+        )
+        klass = self.class_repo.create_class(professor, "Senior Design", "Spring 2026")
+        team = self.team_repo.create_team(klass["id"], "Team A")
+        self.professor_user_repo.update_user(student["id"], {"class_id": klass["id"], "team_id": team["id"]})
+        student = self.professor_user_repo.refresh_user(student["id"])
+
+        self.student_repo.save_project(student, "Team Project", "Initial notes", 10, "Medium")
+        self.student_repo.save_project(student, "Team Project", "Initial notes", 35, "Medium")
+        reverted = self.student_repo.save_project(student, "Team Project", "Initial notes", 10, "Medium")
+
+        self.assertIsNone(reverted["requested_progress"])
+        self.assertEqual("None", reverted["progress_request_status"])
+        self.assertTrue(
+            any("cancelled" in note.lower() for note in reverted["notifications"]),
+            "Expected a notification when a pending request is cancelled.",
+        )
+
     def test_team_members_for_returns_assigned_teammates(self):
         professor = self.auth_repo.create_account("Prof One", "prof@example.com", "secret123", "professor")
         student = self.auth_repo.create_account("Student One", "student@example.com", "secret123", "student")
