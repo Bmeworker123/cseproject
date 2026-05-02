@@ -92,23 +92,12 @@ class CreateProjectsMigration(SqlMigration):
     sql_up = """
     CREATE TABLE IF NOT EXISTS projects (
         id INTEGER PRIMARY KEY,
-        student_email TEXT NOT NULL UNIQUE,
-        student_name TEXT NOT NULL,
-        student_id TEXT,
-        department TEXT,
+        team_id INTEGER NOT NULL UNIQUE,
+        class_id INTEGER,
         title TEXT NOT NULL,
         notes TEXT,
-        progress INTEGER NOT NULL,
-        requested_progress INTEGER,
-        progress_request_status TEXT NOT NULL,
-        status TEXT NOT NULL,
-        professor_notes TEXT,
-        stage TEXT NOT NULL,
-        priority TEXT NOT NULL,
-        meeting_status TEXT NOT NULL,
-        last_updated TEXT NOT NULL,
-        class_id INTEGER,
-        team_id INTEGER
+        approval_status TEXT NOT NULL,
+        last_updated TEXT NOT NULL
     );
     """
     sql_down = "DROP TABLE IF EXISTS projects;"
@@ -127,96 +116,58 @@ class CreateProjectNotificationsMigration(SqlMigration):
     sql_down = "DROP TABLE IF EXISTS project_notifications;"
 
 
-class TeamOwnedProjectsMigration(Migration):
-    name = "007_team_owned_projects"
+class SimplifyProjectsMigration(Migration):
+    name = "007_simplify_projects"
 
     def up(self, db):
         rows = db.execute("SELECT * FROM projects ORDER BY last_updated, id").fetchall()
-        notifications = db.execute(
-            "SELECT project_id, message, created_order FROM project_notifications ORDER BY project_id, created_order"
-        ).fetchall()
-
         latest_by_team = {}
-        unassigned = []
         for row in rows:
             project = dict(row)
-            if project.get("team_id") is None:
-                unassigned.append(project)
-            else:
-                latest_by_team[project["team_id"]] = project
+            team_id = project.get("team_id")
+            if team_id is None:
+                continue
+            latest_by_team[team_id] = project
 
-        projects = list(latest_by_team.values()) + unassigned
-        project_ids = {project["id"] for project in projects}
-
+        projects = list(latest_by_team.values())
         db.execute("DROP TABLE IF EXISTS projects_new")
         db.execute(
             """
             CREATE TABLE projects_new (
                 id INTEGER PRIMARY KEY,
-                student_email TEXT NOT NULL,
-                student_name TEXT NOT NULL,
-                student_id TEXT,
-                department TEXT,
+                team_id INTEGER NOT NULL UNIQUE,
+                class_id INTEGER,
                 title TEXT NOT NULL,
                 notes TEXT,
-                progress INTEGER NOT NULL,
-                requested_progress INTEGER,
-                progress_request_status TEXT NOT NULL,
-                status TEXT NOT NULL,
-                professor_notes TEXT,
-                stage TEXT NOT NULL,
-                priority TEXT NOT NULL,
-                meeting_status TEXT NOT NULL,
-                last_updated TEXT NOT NULL,
-                class_id INTEGER,
-                team_id INTEGER UNIQUE
+                approval_status TEXT NOT NULL,
+                last_updated TEXT NOT NULL
             )
             """
         )
 
-        for project in projects:
+        for index, project in enumerate(projects, start=1):
             db.execute(
                 """
-                INSERT INTO projects_new (
-                    id, student_email, student_name, student_id, department, title, notes,
-                    progress, requested_progress, progress_request_status, status,
-                    professor_notes, stage, priority, meeting_status, last_updated,
-                    class_id, team_id
-                )
-                VALUES (
-                    :id, :student_email, :student_name, :student_id, :department, :title, :notes,
-                    :progress, :requested_progress, :progress_request_status, :status,
-                    :professor_notes, :stage, :priority, :meeting_status, :last_updated,
-                    :class_id, :team_id
-                )
+                INSERT INTO projects_new (id, team_id, class_id, title, notes, approval_status, last_updated)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                project,
+                (
+                    project.get("id") or index,
+                    project["team_id"],
+                    project.get("class_id"),
+                    project.get("title", ""),
+                    project.get("notes", ""),
+                    project.get("status", "Pending Approval"),
+                    project.get("last_updated") or datetime.now().strftime("%Y-%m-%d %H:%M"),
+                ),
             )
 
-        db.execute("DELETE FROM project_notifications")
+        db.execute("DROP TABLE IF EXISTS project_notifications")
         db.execute("DROP TABLE IF EXISTS projects")
         db.execute("ALTER TABLE projects_new RENAME TO projects")
 
-        for row in notifications:
-            if row["project_id"] in project_ids:
-                db.execute(
-                    "INSERT INTO project_notifications (project_id, message, created_order) VALUES (?, ?, ?)",
-                    (row["project_id"], row["message"], row["created_order"]),
-                )
-
     def down(self, db):
-        rows = db.execute("SELECT * FROM projects ORDER BY last_updated, id").fetchall()
-        notifications = db.execute(
-            "SELECT project_id, message, created_order FROM project_notifications ORDER BY project_id, created_order"
-        ).fetchall()
-
-        latest_by_email = {}
-        for row in rows:
-            latest_by_email[row["student_email"]] = dict(row)
-
-        projects = list(latest_by_email.values())
-        project_ids = {project["id"] for project in projects}
-
+        rows = db.execute("SELECT * FROM projects ORDER BY id").fetchall()
         db.execute("DROP TABLE IF EXISTS projects_old")
         db.execute(
             """
@@ -243,7 +194,8 @@ class TeamOwnedProjectsMigration(Migration):
             """
         )
 
-        for project in projects:
+        for row in rows:
+            project = dict(row)
             db.execute(
                 """
                 INSERT INTO projects_old (
@@ -252,26 +204,21 @@ class TeamOwnedProjectsMigration(Migration):
                     professor_notes, stage, priority, meeting_status, last_updated,
                     class_id, team_id
                 )
-                VALUES (
-                    :id, :student_email, :student_name, :student_id, :department, :title, :notes,
-                    :progress, :requested_progress, :progress_request_status, :status,
-                    :professor_notes, :stage, :priority, :meeting_status, :last_updated,
-                    :class_id, :team_id
-                )
+                VALUES (?, '', '', '', '', ?, ?, 0, NULL, 'None', ?, '', 'Proposal', 'Medium', 'Pending', ?, ?, ?)
                 """,
-                project,
+                (
+                    project["id"],
+                    project.get("title", ""),
+                    project.get("notes", ""),
+                    project.get("approval_status", "Pending Approval"),
+                    project.get("last_updated") or datetime.now().strftime("%Y-%m-%d %H:%M"),
+                    project.get("class_id"),
+                    project.get("team_id"),
+                ),
             )
 
-        db.execute("DELETE FROM project_notifications")
         db.execute("DROP TABLE IF EXISTS projects")
         db.execute("ALTER TABLE projects_old RENAME TO projects")
-
-        for row in notifications:
-            if row["project_id"] in project_ids:
-                db.execute(
-                    "INSERT INTO project_notifications (project_id, message, created_order) VALUES (?, ?, ?)",
-                    (row["project_id"], row["message"], row["created_order"]),
-                )
 
 
 class Migrator:
@@ -331,5 +278,5 @@ def default_migrations():
         CreateTeamMembersMigration(),
         CreateProjectsMigration(),
         CreateProjectNotificationsMigration(),
-        TeamOwnedProjectsMigration(),
+        SimplifyProjectsMigration(),
     ]

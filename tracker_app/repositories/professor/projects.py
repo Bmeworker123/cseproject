@@ -25,14 +25,12 @@ class ProfessorProjectRepository(RepositoryBase):
                 return item["name"]
         return "Not Assigned"
 
-    def update_project(self, project_id, updates, notification=None):
+    def update_project(self, project_id, updates):
         projects = self.db.list_projects()
         for project in projects:
             if project["id"] == project_id:
                 project.update(updates)
                 project["last_updated"] = self.db.timestamp()
-                if notification:
-                    self.db.add_project_notification(project, notification)
                 self.db.save_projects(projects)
                 return project
         raise ValueError("Project not found.")

@@ -43,24 +43,12 @@ class StudentProjectRepositoryTests(unittest.TestCase):
         self.gateway.save_projects([
             {
                 "id": 1,
-                "student_email": "student@example.com",
-                "student_name": "Student One",
-                "student_id": "S-1",
-                "department": "CS",
+                "team_id": 10,
+                "class_id": 1,
                 "title": "Team 10 Project",
                 "notes": "Notes",
-                "progress": 20,
-                "requested_progress": None,
-                "progress_request_status": "None",
-                "status": "Pending Approval",
-                "professor_notes": "Awaiting professor review.",
-                "stage": "Proposal",
-                "priority": "Medium",
-                "meeting_status": "Not Scheduled",
+                "approval_status": "Pending Approval",
                 "last_updated": "2026-05-02 10:00",
-                "class_id": 1,
-                "team_id": 10,
-                "notifications": [],
             }
         ])
 
@@ -79,9 +67,6 @@ class StudentProjectRepositoryTests(unittest.TestCase):
             updated_user,
             "Team 20 Project",
             "New notes",
-            5,
-            "Proposal",
-            "Medium",
         )
 
         projects = self.gateway.list_projects()

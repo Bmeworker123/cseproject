@@ -40,11 +40,7 @@ class ProfessorClassRepository(RepositoryBase):
             if user.get("class_id") == class_id:
                 user["class_id"] = None
                 user["team_id"] = None
-        projects = self.db.list_projects()
-        for project in projects:
-            if project.get("class_id") == class_id:
-                project["class_id"] = None
-                project["team_id"] = None
+        projects = [project for project in self.db.list_projects() if project.get("class_id") != class_id]
         self.db.save_classes(classes)
         self.db.save_teams(teams)
         self.db.save_users(users)

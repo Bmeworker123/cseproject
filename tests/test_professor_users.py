@@ -40,24 +40,12 @@ class ProfessorUserRepositoryTests(unittest.TestCase):
         }
         self.project = {
             "id": 1,
-            "student_email": "student@example.com",
-            "student_name": "Student One",
-            "student_id": "S-1",
-            "department": "CS",
+            "team_id": 10,
+            "class_id": 1,
             "title": "Project Alpha",
             "notes": "Notes",
-            "progress": 20,
-            "requested_progress": None,
-            "progress_request_status": "None",
-            "status": "Pending Approval",
-            "professor_notes": "Awaiting professor review.",
-            "stage": "Proposal",
-            "priority": "Medium",
-            "meeting_status": "Not Scheduled",
+            "approval_status": "Pending Approval",
             "last_updated": "2026-05-02 10:00",
-            "class_id": 1,
-            "team_id": 10,
-            "notifications": [],
         }
         self.gateway.save_users([self.user])
         self.gateway.save_projects([self.project])

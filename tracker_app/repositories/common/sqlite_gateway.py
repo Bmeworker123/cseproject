@@ -85,18 +85,7 @@ class SqliteGateway:
     def list_projects(self):
         with self._connect() as db:
             rows = db.execute("SELECT * FROM projects ORDER BY id").fetchall()
-            notifications = db.execute(
-                "SELECT project_id, message FROM project_notifications ORDER BY project_id, created_order"
-            ).fetchall()
-        grouped = {}
-        for row in notifications:
-            grouped.setdefault(row["project_id"], []).append(row["message"])
-        projects = []
-        for row in rows:
-            project = dict(row)
-            project["notifications"] = grouped.get(project["id"], [])
-            projects.append(project)
-        return projects
+        return [dict(row) for row in rows]
 
     def save_projects(self, projects):
         with self._connect() as db:
@@ -104,52 +93,24 @@ class SqliteGateway:
             current_ids = {project.get("id") for project in projects}
 
             for project_id in existing_ids - current_ids:
-                db.execute("DELETE FROM project_notifications WHERE project_id = ?", (project_id,))
                 db.execute("DELETE FROM projects WHERE id = ?", (project_id,))
 
             for project in projects:
                 clean = self.project_defaults(project)
                 db.execute(
                     """
-                    INSERT INTO projects (
-                        id, student_email, student_name, student_id, department, title, notes,
-                        progress, requested_progress, progress_request_status, status,
-                        professor_notes, stage, priority, meeting_status, last_updated,
-                        class_id, team_id
-                    )
-                    VALUES (
-                        :id, :student_email, :student_name, :student_id, :department, :title, :notes,
-                        :progress, :requested_progress, :progress_request_status, :status,
-                        :professor_notes, :stage, :priority, :meeting_status, :last_updated,
-                        :class_id, :team_id
-                    )
+                    INSERT INTO projects (id, team_id, class_id, title, notes, approval_status, last_updated)
+                    VALUES (:id, :team_id, :class_id, :title, :notes, :approval_status, :last_updated)
                     ON CONFLICT(id) DO UPDATE SET
-                        student_email = excluded.student_email,
-                        student_name = excluded.student_name,
-                        student_id = excluded.student_id,
-                        department = excluded.department,
+                        team_id = excluded.team_id,
+                        class_id = excluded.class_id,
                         title = excluded.title,
                         notes = excluded.notes,
-                        progress = excluded.progress,
-                        requested_progress = excluded.requested_progress,
-                        progress_request_status = excluded.progress_request_status,
-                        status = excluded.status,
-                        professor_notes = excluded.professor_notes,
-                        stage = excluded.stage,
-                        priority = excluded.priority,
-                        meeting_status = excluded.meeting_status,
-                        last_updated = excluded.last_updated,
-                        class_id = excluded.class_id,
-                        team_id = excluded.team_id
+                        approval_status = excluded.approval_status,
+                        last_updated = excluded.last_updated
                     """,
                     clean,
                 )
-                db.execute("DELETE FROM project_notifications WHERE project_id = ?", (clean["id"],))
-                for index, message in enumerate(clean["notifications"]):
-                    db.execute(
-                        "INSERT INTO project_notifications (project_id, message, created_order) VALUES (?, ?, ?)",
-                        (clean["id"], message, index),
-                    )
 
     def list_classes(self):
         with self._connect() as db:
@@ -242,24 +203,12 @@ class SqliteGateway:
     def project_defaults(self, project):
         return {
             "id": project.get("id"),
-            "student_email": project.get("student_email", ""),
-            "student_name": project.get("student_name", ""),
-            "student_id": project.get("student_id", ""),
-            "department": project.get("department", ""),
-            "title": project.get("title", ""),
-            "notes": project.get("notes") or "No notes yet.",
-            "progress": int(project.get("progress", 0)),
-            "requested_progress": project.get("requested_progress"),
-            "progress_request_status": project.get("progress_request_status", "None"),
-            "status": project.get("status", "Pending Approval"),
-            "professor_notes": project.get("professor_notes", "Awaiting professor review."),
-            "stage": project.get("stage", "Proposal"),
-            "priority": project.get("priority", "Medium"),
-            "meeting_status": project.get("meeting_status", "Not Scheduled"),
-            "last_updated": project.get("last_updated") or self.timestamp(),
-            "class_id": project.get("class_id"),
             "team_id": project.get("team_id"),
-            "notifications": project.get("notifications", []),
+            "class_id": project.get("class_id"),
+            "title": project.get("title", ""),
+            "notes": project.get("notes") or "",
+            "approval_status": project.get("approval_status", project.get("status", "Pending Approval")),
+            "last_updated": project.get("last_updated") or self.timestamp(),
         }
 
     def class_defaults(self, item): return {
@@ -279,8 +228,3 @@ class SqliteGateway:
             "member_ids": item.get("member_ids", []),
             "created_at": item.get("created_at") or self.timestamp(),
         }
-
-    def add_project_notification(self, project, message):
-        notifications = project.get("notifications", [])
-        notifications.insert(0, f"{self.timestamp()} - {message}")
-        project["notifications"] = notifications[:10]

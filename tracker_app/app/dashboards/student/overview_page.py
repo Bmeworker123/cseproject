@@ -40,17 +40,5 @@ class StudentOverviewPage(StudentPageBase):
         else:
             render_detail_lines(summary, [
                 f"Title: {project['title']}",
-                f"Stage: {project.get('stage', 'N/A')}",
-                f"Status: {project['status']}",
-                f"Progress: {project['progress']}%",
+                f"Approval Status: {project.get('approval_status', 'Pending Approval')}",
             ], bg="#eef8f1", fg="#1f7a45")
-
-        box = Card(parent, bg="#fff7ed")
-        box.pack(fill="x", pady=(18, 0))
-        render_section_title(box, "Notifications", bg="#fff7ed", fg="#9a3412")
-
-        if not user.get("notifications"):
-            Label(box, text="No notifications yet.", size=10, bg="#fff7ed", fg="#b45309").pack(anchor="w", pady=(6, 0))
-        else:
-            for notification in user["notifications"]:
-                Label(box, text=notification, size=10, bg="#fff7ed", fg="#7c2d12", wraplength=760, justify="left").pack(anchor="w", pady=2)
