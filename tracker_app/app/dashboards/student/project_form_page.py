@@ -13,9 +13,9 @@ class StudentProjectFormPage(StudentPageBase):
     def render(self, parent):
         project = self.app.student_repo.project_for(self.app.current_user)
         if self.is_team_project():
-            subtitle = "Submit your shared team project and keep stage, priority, and progress updated for everyone on the team."
+            subtitle = "Submit your shared team project and keep priority and progress updated for everyone on the team."
         else:
-            subtitle = "Submit your project and keep stage, priority, and progress updated."
+            subtitle = "Submit your project and keep priority and progress updated."
         render_page_header(parent, "Project Form", subtitle)
 
         self.student_form_message = Label(parent, text="", size=10, bg="white", fg="#1f7a45")
@@ -42,15 +42,8 @@ class StudentProjectFormPage(StudentPageBase):
         row = tk.Frame(form, bg="white")
         row.pack(fill="x", pady=16)
 
-        left = tk.Frame(row, bg="white")
-        left.pack(side="left", fill="x", expand=True, padx=(0, 10))
-        self.stage_var = tk.StringVar(value="Proposal")
-        OptionField(left, "Project Stage", self.stage_var, ["Proposal", "Requirement Analysis", "Design", "Development", "Testing", "Deployment"]).pack(fill="x")
-
-        right = tk.Frame(row, bg="white")
-        right.pack(side="left", fill="x", expand=True)
         self.priority_var = tk.StringVar(value="Medium")
-        OptionField(right, "Priority", self.priority_var, ["Low", "Medium", "High"]).pack(fill="x")
+        OptionField(row, "Priority", self.priority_var, ["Low", "Medium", "High"]).pack(fill="x", expand=True)
 
         Label(form, text="Progress", size=10, bg="white").pack(anchor="w", pady=(12, 4))
         self.progress_scale = tk.Scale(form, from_=0, to=100, orient="horizontal", bg="white", highlightthickness=0, length=360)
@@ -64,7 +57,6 @@ class StudentProjectFormPage(StudentPageBase):
         if project:
             self.project_title_field.insert(0, project["title"])
             self.project_notes_field.insert("1.0", project["notes"])
-            self.stage_var.set(project.get("stage", "Proposal"))
             self.priority_var.set(project.get("priority", "Medium"))
             self.progress_scale.set(project.get("progress", 0))
 
@@ -72,7 +64,6 @@ class StudentProjectFormPage(StudentPageBase):
         title = self.project_title_field.get().strip()
         notes = self.project_notes_field.get("1.0", "end").strip()
         progress = self.progress_scale.get()
-        stage = self.stage_var.get()
         priority = self.priority_var.get()
 
         if not title:
@@ -80,7 +71,7 @@ class StudentProjectFormPage(StudentPageBase):
             return
 
         self.refresh_user()
-        project = self.app.student_repo.save_project(self.app.current_user, title, notes, progress, stage, priority)
+        project = self.app.student_repo.save_project(self.app.current_user, title, notes, progress, priority)
 
         if project.get("requested_progress") is not None:
             message = f"Project saved. Progress change to {project['requested_progress']}% is waiting for professor approval."

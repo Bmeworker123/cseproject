@@ -36,7 +36,6 @@ class StudentProjectRepositoryTests(unittest.TestCase):
             "Solo Project",
             "Initial notes",
             15,
-            "Proposal",
             "Medium",
         )
         loaded = self.student_repo.project_for(student)
@@ -61,9 +60,9 @@ class StudentProjectRepositoryTests(unittest.TestCase):
         self.professor_user_repo.update_user(student["id"], {"class_id": klass["id"], "team_id": team["id"]})
         student = self.professor_user_repo.refresh_user(student["id"])
 
-        self.student_repo.save_project(student, "Team Project", "Initial notes", 10, "Proposal", "Medium")
-        first_update = self.student_repo.save_project(student, "Team Project", "Initial notes", 35, "Proposal", "Medium")
-        second_update = self.student_repo.save_project(student, "Team Project", "Initial notes", 35, "Proposal", "Medium")
+        self.student_repo.save_project(student, "Team Project", "Initial notes", 10, "Medium")
+        first_update = self.student_repo.save_project(student, "Team Project", "Initial notes", 35, "Medium")
+        second_update = self.student_repo.save_project(student, "Team Project", "Initial notes", 35, "Medium")
 
         matching = [
             note for note in second_update["notifications"] if "Your progress change to 35% was sent" in note

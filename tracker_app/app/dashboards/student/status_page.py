@@ -31,7 +31,6 @@ class StudentStatusPage(StudentPageBase):
             f"Project: {project['title']}",
             f"Class: {self.app.student_repo.class_name(self.app.current_user.get('class_id')) or 'Not Assigned'}",
             f"Team: {self.app.student_repo.team_name(self.app.current_user.get('team_id')) or 'Not Assigned'}",
-            f"Meeting Status: {project.get('meeting_status', 'Pending')}",
             f"Project Status: {project['status']}",
             f"Last Update: {project.get('last_updated', 'N/A')}",
         ]

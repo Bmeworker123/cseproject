@@ -39,8 +39,8 @@ class ProfessorUserRepositoryTests(unittest.TestCase):
         s2 = self.professor_user_repo.refresh_user(s2["id"])
         s3 = self.professor_user_repo.refresh_user(s3["id"])
 
-        project_a = self.student_repo.save_project(s1, "Project A", "Notes A", 10, "Proposal", "Medium")
-        project_b = self.student_repo.save_project(s3, "Project B", "Notes B", 20, "Proposal", "High")
+        project_a = self.student_repo.save_project(s1, "Project A", "Notes A", 10, "Medium")
+        project_b = self.student_repo.save_project(s3, "Project B", "Notes B", 20, "High")
 
         self.professor_user_repo.update_user(s1["id"], {"class_id": klass["id"], "team_id": team_b["id"]})
 
@@ -70,7 +70,7 @@ class ProfessorUserRepositoryTests(unittest.TestCase):
 
         self.professor_user_repo.update_user(student["id"], {"class_id": klass["id"], "team_id": team["id"]})
         student = self.professor_user_repo.refresh_user(student["id"])
-        self.student_repo.save_project(student, "Solo Team Project", "Notes", 10, "Proposal", "Medium")
+        self.student_repo.save_project(student, "Solo Team Project", "Notes", 10, "Medium")
 
         self.professor_user_repo.delete_student(student["id"])
 

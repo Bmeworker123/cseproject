@@ -49,9 +49,7 @@ CREATE TABLE IF NOT EXISTS projects (
     progress_request_status TEXT NOT NULL,
     status TEXT NOT NULL,
     professor_notes TEXT,
-    stage TEXT NOT NULL,
     priority TEXT NOT NULL,
-    meeting_status TEXT NOT NULL,
     last_updated TEXT NOT NULL,
     class_id INTEGER,
     team_id INTEGER UNIQUE

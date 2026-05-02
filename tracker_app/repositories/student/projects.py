@@ -37,7 +37,7 @@ class StudentProjectRepository(RepositoryBase):
     def project_for(self, user):
         return self._find_project_for_user(self.db.list_projects(), user)
 
-    def save_project(self, student, title, notes, progress, stage, priority):
+    def save_project(self, student, title, notes, progress, priority):
         projects = self.db.list_projects()
         existing = self._find_project_for_user(projects, student)
         if existing:
@@ -61,7 +61,6 @@ class StudentProjectRepository(RepositoryBase):
                         )
                     elif requested_progress is None:
                         project["progress_request_status"] = "None"
-                    project["stage"] = stage
                     project["priority"] = priority
                     project["class_id"] = student.get("class_id")
                     project["team_id"] = student.get("team_id")
@@ -82,9 +81,7 @@ class StudentProjectRepository(RepositoryBase):
             "notifications": ["Project submitted. Waiting for professor review."],
             "status": "Pending Approval",
             "professor_notes": "Awaiting professor review.",
-            "stage": stage,
             "priority": priority,
-            "meeting_status": "Not Scheduled",
             "last_updated": self.db.timestamp(),
             "class_id": student.get("class_id"),
             "team_id": student.get("team_id"),

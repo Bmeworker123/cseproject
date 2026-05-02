@@ -45,7 +45,6 @@ class StudentOverviewPage(StudentPageBase):
                 details.append(f"Team Project: {self.app.student_repo.team_name(user.get('team_id'))}")
             details.extend([
                 f"Title: {project['title']}",
-                f"Stage: {project.get('stage', 'N/A')}",
                 f"Status: {project['status']}",
                 f"Progress: {project['progress']}%",
             ])

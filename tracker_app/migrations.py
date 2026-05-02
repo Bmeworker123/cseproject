@@ -103,9 +103,7 @@ class CreateProjectsMigration(SqlMigration):
         progress_request_status TEXT NOT NULL,
         status TEXT NOT NULL,
         professor_notes TEXT,
-        stage TEXT NOT NULL,
         priority TEXT NOT NULL,
-        meeting_status TEXT NOT NULL,
         last_updated TEXT NOT NULL,
         class_id INTEGER,
         team_id INTEGER
@@ -164,9 +162,7 @@ class TeamOwnedProjectsMigration(Migration):
                 progress_request_status TEXT NOT NULL,
                 status TEXT NOT NULL,
                 professor_notes TEXT,
-                stage TEXT NOT NULL,
                 priority TEXT NOT NULL,
-                meeting_status TEXT NOT NULL,
                 last_updated TEXT NOT NULL,
                 class_id INTEGER,
                 team_id INTEGER UNIQUE
@@ -180,13 +176,13 @@ class TeamOwnedProjectsMigration(Migration):
                 INSERT INTO projects_new (
                 id, student_email, student_name, student_id, department, title, notes,
                 progress, requested_progress, progress_request_status, status,
-                professor_notes, stage, priority, meeting_status, last_updated,
+                professor_notes, priority, last_updated,
                 class_id, team_id
             )
                 VALUES (
                     :id, :student_email, :student_name, :student_id, :department, :title, :notes,
                     :progress, :requested_progress, :progress_request_status, :status,
-                    :professor_notes, :stage, :priority, :meeting_status, :last_updated,
+                    :professor_notes, :priority, :last_updated,
                     :class_id, :team_id
                 )
                 """,
@@ -233,9 +229,7 @@ class TeamOwnedProjectsMigration(Migration):
                 progress_request_status TEXT NOT NULL,
                 status TEXT NOT NULL,
                 professor_notes TEXT,
-                stage TEXT NOT NULL,
                 priority TEXT NOT NULL,
-                meeting_status TEXT NOT NULL,
                 last_updated TEXT NOT NULL,
                 class_id INTEGER,
                 team_id INTEGER
@@ -249,13 +243,13 @@ class TeamOwnedProjectsMigration(Migration):
                 INSERT INTO projects_old (
                     id, student_email, student_name, student_id, department, title, notes,
                     progress, requested_progress, progress_request_status, status,
-                    professor_notes, stage, priority, meeting_status, last_updated,
+                    professor_notes, priority, last_updated,
                     class_id, team_id
                 )
                 VALUES (
                     :id, :student_email, :student_name, :student_id, :department, :title, :notes,
                     :progress, :requested_progress, :progress_request_status, :status,
-                    :professor_notes, :stage, :priority, :meeting_status, :last_updated,
+                    :professor_notes, :priority, :last_updated,
                     :class_id, :team_id
                 )
                 """,
@@ -272,6 +266,130 @@ class TeamOwnedProjectsMigration(Migration):
                     "INSERT INTO project_notifications (project_id, message, created_order) VALUES (?, ?, ?)",
                     (row["project_id"], row["message"], row["created_order"]),
                 )
+
+
+class RemoveUnusedProjectScheduleFieldsMigration(Migration):
+    name = "008_remove_unused_project_schedule_fields"
+
+    def up(self, db):
+        rows = db.execute("SELECT * FROM projects ORDER BY id").fetchall()
+        notifications = db.execute(
+            "SELECT project_id, message, created_order FROM project_notifications ORDER BY project_id, created_order"
+        ).fetchall()
+
+        db.execute("DROP TABLE IF EXISTS projects_clean")
+        db.execute(
+            """
+            CREATE TABLE projects_clean (
+                id INTEGER PRIMARY KEY,
+                student_email TEXT NOT NULL,
+                student_name TEXT NOT NULL,
+                student_id TEXT,
+                department TEXT,
+                title TEXT NOT NULL,
+                notes TEXT,
+                progress INTEGER NOT NULL,
+                requested_progress INTEGER,
+                progress_request_status TEXT NOT NULL,
+                status TEXT NOT NULL,
+                professor_notes TEXT,
+                priority TEXT NOT NULL,
+                last_updated TEXT NOT NULL,
+                class_id INTEGER,
+                team_id INTEGER UNIQUE
+            )
+            """
+        )
+
+        for row in rows:
+            project = dict(row)
+            db.execute(
+                """
+                INSERT INTO projects_clean (
+                    id, student_email, student_name, student_id, department, title, notes,
+                    progress, requested_progress, progress_request_status, status,
+                    professor_notes, priority, last_updated, class_id, team_id
+                )
+                VALUES (
+                    :id, :student_email, :student_name, :student_id, :department, :title, :notes,
+                    :progress, :requested_progress, :progress_request_status, :status,
+                    :professor_notes, :priority, :last_updated, :class_id, :team_id
+                )
+                """,
+                project,
+            )
+
+        db.execute("DELETE FROM project_notifications")
+        db.execute("DROP TABLE projects")
+        db.execute("ALTER TABLE projects_clean RENAME TO projects")
+
+        for row in notifications:
+            db.execute(
+                "INSERT INTO project_notifications (project_id, message, created_order) VALUES (?, ?, ?)",
+                (row["project_id"], row["message"], row["created_order"]),
+            )
+
+    def down(self, db):
+        rows = db.execute("SELECT * FROM projects ORDER BY id").fetchall()
+        notifications = db.execute(
+            "SELECT project_id, message, created_order FROM project_notifications ORDER BY project_id, created_order"
+        ).fetchall()
+
+        db.execute("DROP TABLE IF EXISTS projects_with_schedule")
+        db.execute(
+            """
+            CREATE TABLE projects_with_schedule (
+                id INTEGER PRIMARY KEY,
+                student_email TEXT NOT NULL,
+                student_name TEXT NOT NULL,
+                student_id TEXT,
+                department TEXT,
+                title TEXT NOT NULL,
+                notes TEXT,
+                progress INTEGER NOT NULL,
+                requested_progress INTEGER,
+                progress_request_status TEXT NOT NULL,
+                status TEXT NOT NULL,
+                professor_notes TEXT,
+                stage TEXT NOT NULL,
+                priority TEXT NOT NULL,
+                meeting_status TEXT NOT NULL,
+                last_updated TEXT NOT NULL,
+                class_id INTEGER,
+                team_id INTEGER UNIQUE
+            )
+            """
+        )
+
+        for row in rows:
+            project = dict(row)
+            project.setdefault("stage", "Proposal")
+            project.setdefault("meeting_status", "Not Scheduled")
+            db.execute(
+                """
+                INSERT INTO projects_with_schedule (
+                    id, student_email, student_name, student_id, department, title, notes,
+                    progress, requested_progress, progress_request_status, status,
+                    professor_notes, stage, priority, meeting_status, last_updated, class_id, team_id
+                )
+                VALUES (
+                    :id, :student_email, :student_name, :student_id, :department, :title, :notes,
+                    :progress, :requested_progress, :progress_request_status, :status,
+                    :professor_notes, :stage, :priority, :meeting_status, :last_updated, :class_id, :team_id
+                )
+                """,
+                project,
+            )
+
+        db.execute("DELETE FROM project_notifications")
+        db.execute("DROP TABLE projects")
+        db.execute("ALTER TABLE projects_with_schedule RENAME TO projects")
+
+        for row in notifications:
+            db.execute(
+                "INSERT INTO project_notifications (project_id, message, created_order) VALUES (?, ?, ?)",
+                (row["project_id"], row["message"], row["created_order"]),
+            )
 
 
 class Migrator:
@@ -332,4 +450,5 @@ def default_migrations():
         CreateProjectsMigration(),
         CreateProjectNotificationsMigration(),
         TeamOwnedProjectsMigration(),
+        RemoveUnusedProjectScheduleFieldsMigration(),
     ]

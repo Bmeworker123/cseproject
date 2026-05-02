@@ -120,13 +120,13 @@ class SqliteGateway:
                     INSERT INTO projects (
                         id, student_email, student_name, student_id, department, title, notes,
                         progress, requested_progress, progress_request_status, status,
-                        professor_notes, stage, priority, meeting_status, last_updated,
+                        professor_notes, priority, last_updated,
                         class_id, team_id
                     )
                     VALUES (
                         :id, :student_email, :student_name, :student_id, :department, :title, :notes,
                         :progress, :requested_progress, :progress_request_status, :status,
-                        :professor_notes, :stage, :priority, :meeting_status, :last_updated,
+                        :professor_notes, :priority, :last_updated,
                         :class_id, :team_id
                     )
                     ON CONFLICT(id) DO UPDATE SET
@@ -141,9 +141,7 @@ class SqliteGateway:
                         progress_request_status = excluded.progress_request_status,
                         status = excluded.status,
                         professor_notes = excluded.professor_notes,
-                        stage = excluded.stage,
                         priority = excluded.priority,
-                        meeting_status = excluded.meeting_status,
                         last_updated = excluded.last_updated,
                         class_id = excluded.class_id,
                         team_id = excluded.team_id
@@ -259,9 +257,7 @@ class SqliteGateway:
             "progress_request_status": project.get("progress_request_status", "None"),
             "status": project.get("status", "Pending Approval"),
             "professor_notes": project.get("professor_notes", "Awaiting professor review."),
-            "stage": project.get("stage", "Proposal"),
             "priority": project.get("priority", "Medium"),
-            "meeting_status": project.get("meeting_status", "Not Scheduled"),
             "last_updated": project.get("last_updated") or self.timestamp(),
             "class_id": project.get("class_id"),
             "team_id": project.get("team_id"),
