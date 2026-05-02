@@ -5,7 +5,7 @@ from tracker_app.repositories.auth import AuthRepository
 from tracker_app.repositories.professor.classes import ProfessorClassRepository
 from tracker_app.repositories.professor.teams import ProfessorTeamRepository
 from tracker_app.repositories.professor.users import ProfessorUserRepository
-from tracker_app.repositories.student.projects import StudentProjectRepository
+from tracker_app.repositories.student import StudentRepository
 
 
 class StudentProjectRepositoryTests(unittest.TestCase):
@@ -16,7 +16,7 @@ class StudentProjectRepositoryTests(unittest.TestCase):
         self.class_repo = ProfessorClassRepository(base_dir)
         self.team_repo = ProfessorTeamRepository(base_dir)
         self.professor_user_repo = ProfessorUserRepository(base_dir)
-        self.student_repo = StudentProjectRepository(base_dir)
+        self.student_repo = StudentRepository(base_dir)
 
     def tearDown(self):
         self.tempdir.cleanup()
@@ -71,6 +71,41 @@ class StudentProjectRepositoryTests(unittest.TestCase):
         self.assertEqual(35, first_update["requested_progress"])
         self.assertEqual(35, second_update["requested_progress"])
         self.assertEqual("Pending", second_update["progress_request_status"])
+
+    def test_student_pairing_creates_team_and_updates_members(self):
+        professor = self.auth_repo.create_account("Prof One", "prof@example.com", "secret123", "professor")
+        student = self.auth_repo.create_account("Student One", "student@example.com", "secret123", "student")
+        partner = self.auth_repo.create_account("Student Two", "partner@example.com", "secret123", "student")
+
+        klass = self.class_repo.create_class(professor, "Senior Design", "Spring 2026")
+        self.professor_user_repo.update_user(student["id"], {"class_id": klass["id"]})
+        self.professor_user_repo.update_user(partner["id"], {"class_id": klass["id"]})
+
+        result = self.student_repo.pair_with_student(student["id"], partner["id"])
+        updated_student = self.professor_user_repo.refresh_user(student["id"])
+        updated_partner = self.professor_user_repo.refresh_user(partner["id"])
+
+        self.assertIsNotNone(updated_student["team_id"])
+        self.assertEqual(updated_student["team_id"], updated_partner["team_id"])
+        self.assertEqual(result["team_id"], updated_student["team_id"])
+        self.assertEqual(2, len(result["members"]))
+
+    def test_student_can_leave_team(self):
+        professor = self.auth_repo.create_account("Prof One", "prof@example.com", "secret123", "professor")
+        student = self.auth_repo.create_account("Student One", "student@example.com", "secret123", "student")
+        partner = self.auth_repo.create_account("Student Two", "partner@example.com", "secret123", "student")
+
+        klass = self.class_repo.create_class(professor, "Senior Design", "Spring 2026")
+        self.professor_user_repo.update_user(student["id"], {"class_id": klass["id"]})
+        self.professor_user_repo.update_user(partner["id"], {"class_id": klass["id"]})
+        self.student_repo.pair_with_student(student["id"], partner["id"])
+
+        self.student_repo.leave_team(student["id"])
+        updated_student = self.professor_user_repo.refresh_user(student["id"])
+        updated_partner = self.professor_user_repo.refresh_user(partner["id"])
+
+        self.assertIsNone(updated_student["team_id"])
+        self.assertIsNotNone(updated_partner["team_id"])
 
 
 if __name__ == "__main__":
