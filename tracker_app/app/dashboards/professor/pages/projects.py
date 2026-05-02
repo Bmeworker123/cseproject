@@ -86,11 +86,9 @@ class ProfessorProjectsPage(ProfessorPageBase):
             if not teacher_class_ids or project.get("class_id") in teacher_class_ids or project.get("class_id") is None
         ]
         self.project_listbox.delete(0, tk.END)
-        students = self.app.professor_repo.list_students()
         for project in self.project_records:
-            owner = next((u for u in students if u["email"] == project["student_email"]), None)
-            name = owner["name"] if owner else "Unknown"
-            self.project_listbox.insert(tk.END, f"{name} | {project['title']} | {project['status']}")
+            team_name = self.app.professor_repo.get_team_name(project.get("team_id")) or "No Team"
+            self.project_listbox.insert(tk.END, f"{team_name} | {project['title']} | {project['status']}")
 
     def load_selected_project(self):
         selection = self.project_listbox.curselection()
@@ -102,8 +100,8 @@ class ProfessorProjectsPage(ProfessorPageBase):
         class_name = self.app.professor_repo.get_class_name(project.get("class_id")) or "Not Assigned"
         team_name = self.app.professor_repo.get_team_name(project.get("team_id")) or "Not Assigned"
         detail_text = (
-            f"Student: {project['student_email']}\n"
-            f"Class: {class_name} | Team: {team_name}\n"
+            f"Team: {team_name}\n"
+            f"Class: {class_name}\n"
             f"Priority: {project.get('priority', 'Medium')}\n"
             f"Last Updated: {project.get('last_updated', 'N/A')}"
         )

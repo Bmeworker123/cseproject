@@ -8,7 +8,7 @@ class StudentProjectRepository(RepositoryBase):
 
     def project_for(self, user):
         for project in self.db.list_projects():
-            if project["student_email"] == user["email"]:
+            if project.get("team_id") == user.get("team_id"):
                 return project
         return None
 
@@ -16,15 +16,12 @@ class StudentProjectRepository(RepositoryBase):
         projects = self.db.list_projects()
         existing = None
         for project in projects:
-            if project["student_email"] == student["email"]:
+            if project.get("team_id") == student.get("team_id"):
                 existing = project
                 break
         if existing:
             for project in projects:
                 if project["id"] == existing["id"]:
-                    project["student_name"] = student["name"]
-                    project["student_id"] = student.get("student_id", "")
-                    project["department"] = student.get("department", "")
                     project["title"] = title
                     project["notes"] = notes or "No notes yet."
                     if progress != project.get("progress", 0):
