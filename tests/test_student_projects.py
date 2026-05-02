@@ -74,6 +74,13 @@ class StudentProjectRepositoryTests(unittest.TestCase):
         self.assertEqual(new_project["team_id"], 20)
         self.assertEqual({project["team_id"] for project in projects}, {10, 20})
 
+    def test_save_project_rejects_students_without_team(self):
+        unassigned_user = dict(self.user)
+        unassigned_user["team_id"] = None
+
+        with self.assertRaises(ValueError):
+            self.student_repo.save_project(unassigned_user, "Orphan Project", "Notes")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -42,5 +42,9 @@ class StudentProjectFormPage(StudentPageBase):
             return
 
         self.refresh_user()
+        if not self.app.current_user.get("team_id"):
+            self.student_form_message.config(text="You need to be assigned to a team before saving a project.", fg="#c0392b")
+            return
+
         self.app.student_repo.save_project(self.app.current_user, title, notes)
         self.student_form_message.config(text="Project saved. Waiting for team approval.", fg="#1f7a45")

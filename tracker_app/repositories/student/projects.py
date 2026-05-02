@@ -13,6 +13,9 @@ class StudentProjectRepository(RepositoryBase):
         return None
 
     def save_project(self, student, title, notes):
+        if not student.get("team_id"):
+            raise ValueError("Student must be assigned to a team before saving a project.")
+
         projects = self.db.list_projects()
         existing = None
         for project in projects:
