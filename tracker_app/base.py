@@ -1,13 +1,14 @@
 import abc
-from enum import Enum
 import tkinter as tk
+from enum import Enum
 
-from .ui import Button
+from tracker_app.ui import Button
 
 
 class AuthMode(Enum):
     SIGNIN = "signin"
     SIGNUP = "signup"
+
 
 class AppState:
     def __init__(self):
@@ -27,7 +28,7 @@ class AppState:
 class Dashboard(abc.ABC):
     state: AppState
     main_frame: tk.Frame
-    
+
     def show_dashboard(self):
         pass
 
@@ -110,6 +111,14 @@ class Dashboard(abc.ABC):
         return sidebar, content
 
     def sidebar_button(self, parent, text, command, active=False):
-        Button(parent, text, command, primary=active).pack(fill="x", padx=14, pady=6)
+        button = Button(parent, text, command, primary=active)
+        button.pack(fill="x", padx=14, pady=6)
         if not active:
-            parent.winfo_children()[-1].configure(bg="#16324f", fg="white", relief="flat", activebackground="#1d456b", activeforeground="white")
+            button.configure(
+                bg="#16324f",
+                fg="white",
+                relief="flat",
+                activebackground="#1d456b",
+                activeforeground="white",
+            )
+        return button

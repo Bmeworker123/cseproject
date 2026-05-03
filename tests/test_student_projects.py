@@ -40,17 +40,19 @@ class StudentProjectRepositoryTests(unittest.TestCase):
             "team_id": 10,
         }
         self.gateway.save_users([self.user])
-        self.gateway.save_projects([
-            {
-                "id": 1,
-                "team_id": 10,
-                "class_id": 1,
-                "title": "Team 10 Project",
-                "notes": "Notes",
-                "approval_status": "Pending Approval",
-                "last_updated": "2026-05-02 10:00",
-            }
-        ])
+        self.gateway.save_projects(
+            [
+                {
+                    "id": 1,
+                    "team_id": 10,
+                    "class_id": 1,
+                    "title": "Team 10 Project",
+                    "notes": "Notes",
+                    "approval_status": "Pending Approval",
+                    "last_updated": "2026-05-02 10:00",
+                }
+            ]
+        )
 
     def tearDown(self):
         self.tempdir.cleanup()

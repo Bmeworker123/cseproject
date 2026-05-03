@@ -1,5 +1,5 @@
-from .users import StudentUserRepository
 from .projects import StudentProjectRepository
+from .users import StudentUserRepository
 
 
 class StudentRepository(StudentUserRepository, StudentProjectRepository):

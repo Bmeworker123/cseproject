@@ -1,14 +1,14 @@
 import os
-import sys
 import sqlite3
+import sys
 import tkinter as tk
 
 from ..base import AppState, Dashboard
 from ..migrations import Migrator, default_migrations
-from ..repositories import AuthRepository, StudentRepository, ProfessorRepository
+from ..repositories import AuthRepository, ProfessorRepository, StudentRepository
 from .auth import AuthPage
-from .dashboards.student.dashboard import StudentDashboardPage
 from .dashboards.professor.pages import ProfessorDashboardPage
+from .dashboards.student.dashboard import StudentDashboardPage
 
 
 class ProjectApprovalApp(Dashboard, tk.Tk):

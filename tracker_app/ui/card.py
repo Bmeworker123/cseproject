@@ -1,5 +1,6 @@
 import tkinter as tk
 
+
 class Card(tk.Frame):
     def __init__(self, parent, bg="white", padx=16, pady=16, **kwargs):
         config = {

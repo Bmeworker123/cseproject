@@ -47,7 +47,9 @@ class SqliteGateway:
 
     def save_users(self, users):
         with self._connect() as db:
-            existing_ids = {row["id"] for row in db.execute("SELECT id FROM users").fetchall()}
+            existing_ids = {
+                row["id"] for row in db.execute("SELECT id FROM users").fetchall()
+            }
             current_ids = {user.get("id") for user in users}
 
             for user_id in existing_ids - current_ids:
@@ -89,7 +91,9 @@ class SqliteGateway:
 
     def save_projects(self, projects):
         with self._connect() as db:
-            existing_ids = {row["id"] for row in db.execute("SELECT id FROM projects").fetchall()}
+            existing_ids = {
+                row["id"] for row in db.execute("SELECT id FROM projects").fetchall()
+            }
             current_ids = {project.get("id") for project in projects}
 
             for project_id in existing_ids - current_ids:
@@ -119,7 +123,9 @@ class SqliteGateway:
 
     def save_classes(self, classes):
         with self._connect() as db:
-            existing_ids = {row["id"] for row in db.execute("SELECT id FROM classes").fetchall()}
+            existing_ids = {
+                row["id"] for row in db.execute("SELECT id FROM classes").fetchall()
+            }
             current_ids = {item.get("id") for item in classes}
 
             for class_id in existing_ids - current_ids:
@@ -144,7 +150,9 @@ class SqliteGateway:
     def list_teams(self):
         with self._connect() as db:
             rows = db.execute("SELECT * FROM teams ORDER BY id").fetchall()
-            members = db.execute("SELECT team_id, student_id FROM team_members ORDER BY team_id, student_id").fetchall()
+            members = db.execute(
+                "SELECT team_id, student_id FROM team_members ORDER BY team_id, student_id"
+            ).fetchall()
         grouped = {}
         for row in members:
             grouped.setdefault(row["team_id"], []).append(row["student_id"])
@@ -157,7 +165,9 @@ class SqliteGateway:
 
     def save_teams(self, teams):
         with self._connect() as db:
-            existing_ids = {row["id"] for row in db.execute("SELECT id FROM teams").fetchall()}
+            existing_ids = {
+                row["id"] for row in db.execute("SELECT id FROM teams").fetchall()
+            }
             current_ids = {team.get("id") for team in teams}
 
             for team_id in existing_ids - current_ids:
@@ -179,11 +189,16 @@ class SqliteGateway:
                 )
                 db.execute("DELETE FROM team_members WHERE team_id = ?", (clean["id"],))
                 for student_id in clean["member_ids"]:
-                    db.execute("INSERT INTO team_members (team_id, student_id) VALUES (?, ?)", (clean["id"], student_id))
+                    db.execute(
+                        "INSERT INTO team_members (team_id, student_id) VALUES (?, ?)",
+                        (clean["id"], student_id),
+                    )
 
     def user_defaults(self, user):
         email = user.get("email", "").strip().lower()
-        default_name = email.split("@")[0].replace(".", " ").title() if email else "User"
+        default_name = (
+            email.split("@")[0].replace(".", " ").title() if email else "User"
+        )
         return {
             "id": user.get("id"),
             "name": user.get("name") or default_name,
@@ -207,11 +222,14 @@ class SqliteGateway:
             "class_id": project.get("class_id"),
             "title": project.get("title", ""),
             "notes": project.get("notes") or "",
-            "approval_status": project.get("approval_status", project.get("status", "Pending Approval")),
+            "approval_status": project.get(
+                "approval_status", project.get("status", "Pending Approval")
+            ),
             "last_updated": project.get("last_updated") or self.timestamp(),
         }
 
-    def class_defaults(self, item): return {
+    def class_defaults(self, item):
+        return {
             "id": item.get("id"),
             "name": item.get("name", ""),
             "term": item.get("term", ""),

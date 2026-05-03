@@ -33,7 +33,11 @@ class ProfessorUserRepository(RepositoryBase):
         teams = self.db.list_teams()
         for team in teams:
             if student_id in team.get("member_ids", []):
-                team["member_ids"] = [member_id for member_id in team["member_ids"] if member_id != student_id]
+                team["member_ids"] = [
+                    member_id
+                    for member_id in team["member_ids"]
+                    if member_id != student_id
+                ]
         self.db.save_users(users)
         self.db.save_teams(teams)
         return student

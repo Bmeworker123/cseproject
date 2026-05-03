@@ -1,9 +1,11 @@
-from ...ui import Button, Label, EntryField
+from tracker_app.app.components import Component
+from tracker_app.ui import Button, EntryField, Label
 
 
-class SignInFormCard:
-    def __init__(self, page):
+class SignInFormCard(Component):
+    def __init__(self, page, wrapper):
         self.page = page
+        super().__init__(wrapper)
 
     def render(self, wrapper):
         card = self.page._build_card(
@@ -19,19 +21,14 @@ class SignInFormCard:
         self.page.password_field.pack(fill="x")
         self.page.password_field.bind("<Return>", lambda _event: self.submit())
 
-        Button(
-            card, 
-            "Sign In",
-            self.submit,
-            primary=True
-        ).pack(fill="x", pady=(18, 10))
+        Button(card, "Sign In", self.submit, primary=True).pack(fill="x", pady=(18, 10))
 
         Button(
             card,
             text="Need an account? Create one",
             command=self.page._toggle_auth_mode,
-            relief="flat", 
-            bd=0
+            relief="flat",
+            bd=0,
         ).pack(anchor="w")
 
         Label(
@@ -53,7 +50,9 @@ class SignInFormCard:
         try:
             self.page._validate_email(email)
             self.page._validate_password(password)
-            self.page.app.current_user = self.page.app.auth_repo.sign_in(email, password)
+            self.page.app.current_user = self.page.app.auth_repo.sign_in(
+                email, password
+            )
             self.page.auth_message.config(text="")
         except ValueError as error:
             self.page.auth_message.config(text=str(error))

@@ -7,7 +7,11 @@ class ProfessorClassRepository(RepositoryBase):
         self.db = SqliteGateway(base_dir)
 
     def classes_for(self, teacher_email):
-        return [item for item in self.db.list_classes() if item["teacher_email"] == teacher_email]
+        return [
+            item
+            for item in self.db.list_classes()
+            if item["teacher_email"] == teacher_email
+        ]
 
     def find_class_by_id(self, class_id):
         for item in self.db.list_classes():
@@ -34,13 +38,19 @@ class ProfessorClassRepository(RepositoryBase):
         if not class_record:
             raise ValueError("Class not found.")
         classes = [item for item in self.db.list_classes() if item["id"] != class_id]
-        teams = [team for team in self.db.list_teams() if team.get("class_id") != class_id]
+        teams = [
+            team for team in self.db.list_teams() if team.get("class_id") != class_id
+        ]
         users = self.db.list_users()
         for user in users:
             if user.get("class_id") == class_id:
                 user["class_id"] = None
                 user["team_id"] = None
-        projects = [project for project in self.db.list_projects() if project.get("class_id") != class_id]
+        projects = [
+            project
+            for project in self.db.list_projects()
+            if project.get("class_id") != class_id
+        ]
         self.db.save_classes(classes)
         self.db.save_teams(teams)
         self.db.save_users(users)

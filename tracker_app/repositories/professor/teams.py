@@ -10,7 +10,9 @@ class ProfessorTeamRepository(RepositoryBase):
         return self.db.list_teams()
 
     def list_teams_for_class(self, class_id):
-        return [item for item in self.db.list_teams() if item.get("class_id") == class_id]
+        return [
+            item for item in self.db.list_teams() if item.get("class_id") == class_id
+        ]
 
     def create_team(self, class_id, team_name):
         teams = self.db.list_teams()
@@ -36,7 +38,11 @@ class ProfessorTeamRepository(RepositoryBase):
         for user in users:
             if user.get("team_id") == team_id:
                 user["team_id"] = None
-        projects = [project for project in self.db.list_projects() if project.get("team_id") != team_id]
+        projects = [
+            project
+            for project in self.db.list_projects()
+            if project.get("team_id") != team_id
+        ]
         self.db.save_teams(teams)
         self.db.save_users(users)
         self.db.save_projects(projects)

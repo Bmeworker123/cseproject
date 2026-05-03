@@ -1,9 +1,9 @@
+from .classes import ProfessorClassesPage
 from .dashboard import ProfessorDashboardPage
 from .overview import ProfessorOverviewPage
-from .students import ProfessorStudentsPage
-from .classes import ProfessorClassesPage
-from .teams import ProfessorTeamsPage
 from .projects import ProfessorProjectsPage
+from .students import ProfessorStudentsPage
+from .teams import ProfessorTeamsPage
 
 __all__ = [
     "ProfessorDashboardPage",

@@ -158,7 +158,8 @@ class SimplifyProjectsMigration(Migration):
                     project.get("title", ""),
                     project.get("notes", ""),
                     project.get("status", "Pending Approval"),
-                    project.get("last_updated") or datetime.now().strftime("%Y-%m-%d %H:%M"),
+                    project.get("last_updated")
+                    or datetime.now().strftime("%Y-%m-%d %H:%M"),
                 ),
             )
 
@@ -211,7 +212,8 @@ class SimplifyProjectsMigration(Migration):
                     project.get("title", ""),
                     project.get("notes", ""),
                     project.get("approval_status", "Pending Approval"),
-                    project.get("last_updated") or datetime.now().strftime("%Y-%m-%d %H:%M"),
+                    project.get("last_updated")
+                    or datetime.now().strftime("%Y-%m-%d %H:%M"),
                     project.get("class_id"),
                     project.get("team_id"),
                 ),

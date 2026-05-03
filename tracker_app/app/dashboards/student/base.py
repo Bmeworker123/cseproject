@@ -3,7 +3,9 @@ class StudentPageBase:
         self.app = app
 
     def refresh_user(self):
-        self.app.current_user = self.app.student_repo.refresh_user(self.app.current_user["id"])
+        self.app.current_user = self.app.student_repo.refresh_user(
+            self.app.current_user["id"]
+        )
         return self.app.current_user
 
     def current_project(self):

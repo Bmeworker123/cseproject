@@ -1,7 +1,7 @@
-from .users import ProfessorUserRepository
 from .classes import ProfessorClassRepository
-from .teams import ProfessorTeamRepository
 from .projects import ProfessorProjectRepository
+from .teams import ProfessorTeamRepository
+from .users import ProfessorUserRepository
 
 
 class ProfessorRepository(

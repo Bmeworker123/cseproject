@@ -6,7 +6,7 @@ class Button(tk.Button):
         bg = "#2f80ed" if primary else "white"
         fg = "white" if primary else "#334e68"
         relief = "flat" if primary else "solid"
-        
+
         config = {
             "text": text,
             "command": command,

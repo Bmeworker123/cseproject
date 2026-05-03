@@ -1,12 +1,14 @@
 import tkinter as tk
 from tkinter import messagebox
 
-from ...ui import Button, Label, EntryField
+from tracker_app.app.components import Component
+from tracker_app.ui import Button, EntryField, Label
 
 
-class SignUpFormCard:
-    def __init__(self, page):
+class SignUpFormCard(Component):
+    def __init__(self, page, wrapper):
         self.page = page
+        super().__init__(wrapper)
 
     def render(self, wrapper):
         card = self.page._build_card(
@@ -52,8 +54,16 @@ class SignUpFormCard:
         self.page.department_field = EntryField(card, "Department (optional)")
         self.page.department_field.pack(fill="x")
 
-        Button(card, "Create Account", self.submit, primary=True).pack(fill="x", pady=(18, 10))
-        Button(card, text="Already have an account? Sign in", command=self.page._toggle_auth_mode, relief="flat", bd=0).pack(anchor="w")
+        Button(card, "Create Account", self.submit, primary=True).pack(
+            fill="x", pady=(18, 10)
+        )
+        Button(
+            card,
+            text="Already have an account? Sign in",
+            command=self.page._toggle_auth_mode,
+            relief="flat",
+            bd=0,
+        ).pack(anchor="w")
 
         Label(
             card,
