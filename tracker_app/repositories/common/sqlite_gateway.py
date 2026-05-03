@@ -148,6 +148,74 @@ class SqliteGateway:
             rows = db.execute("SELECT * FROM classes ORDER BY id").fetchall()
         return [dict(row) for row in rows]
 
+    def list_classes_for_teacher(self, teacher_email):
+        with self._connect() as db:
+            rows = db.execute(
+                "SELECT * FROM classes WHERE teacher_email = ? ORDER BY id",
+                (teacher_email,),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def get_class_by_id(self, class_id):
+        with self._connect() as db:
+            row = db.execute("SELECT * FROM classes WHERE id = ?", (class_id,)).fetchone()
+        return dict(row) if row else None
+
+    def delete_class(self, class_id):
+        with self._connect() as db:
+            class_row = db.execute(
+                "SELECT * FROM classes WHERE id = ?", (class_id,)
+            ).fetchone()
+            if not class_row:
+                return None
+
+            db.execute(
+                "UPDATE users SET class_id = NULL, team_id = NULL WHERE class_id = ?",
+                (class_id,),
+            )
+            notifications_table = db.execute(
+                """
+                SELECT name
+                FROM sqlite_master
+                WHERE type = 'table' AND name = 'project_notifications'
+                """
+            ).fetchone()
+            if notifications_table:
+                db.execute(
+                    """
+                    DELETE FROM project_notifications
+                    WHERE project_id IN (
+                        SELECT p.id
+                        FROM projects p
+                        LEFT JOIN teams t ON t.id = p.team_id
+                        WHERE p.class_id = ? OR t.class_id = ?
+                    )
+                    """,
+                    (class_id, class_id),
+                )
+            db.execute(
+                """
+                DELETE FROM projects
+                WHERE class_id = ?
+                   OR team_id IN (
+                       SELECT id FROM teams WHERE class_id = ?
+                   )
+                """,
+                (class_id, class_id),
+            )
+            db.execute(
+                """
+                DELETE FROM team_members
+                WHERE team_id IN (
+                    SELECT id FROM teams WHERE class_id = ?
+                )
+                """,
+                (class_id,),
+            )
+            db.execute("DELETE FROM teams WHERE class_id = ?", (class_id,))
+            db.execute("DELETE FROM classes WHERE id = ?", (class_id,))
+        return dict(class_row)
+
     def save_classes(self, classes):
         with self._connect() as db:
             existing_ids = {
