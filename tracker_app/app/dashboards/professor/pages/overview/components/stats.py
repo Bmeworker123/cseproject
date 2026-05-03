@@ -11,7 +11,7 @@ class OverviewStatsCard(Component):
 
     def render(self, parent):
         students = self.page.app.professor_repo.list_students()
-        projects = self.page.app.professor_repo.list_projects()
+        active_projects = self.calculate_active_projects(self.page)
         classes = self.page.teacher_classes()
 
         stats = tk.Frame(parent, bg="white")
@@ -20,8 +20,16 @@ class OverviewStatsCard(Component):
             stats, "Total Students", str(len(students)), "Enrolled in project tracker."
         ).pack(side="left", fill="both", expand=True, padx=6)
         StatCard(
-            stats, "Active Projects", str(len(projects)), "Submitted for review."
+            stats,
+            "Active Projects",
+            str(active_projects),
+            "Submitted for review.",
         ).pack(side="left", fill="both", expand=True, padx=6)
         StatCard(stats, "Your Classes", str(len(classes)), "Created by you.").pack(
             side="left", fill="both", expand=True, padx=6
         )
+
+    @staticmethod
+    def calculate_active_projects(page):
+        teacher_email = page.app.current_user["email"]
+        return page.app.professor_repo.count_projects_for_teacher(teacher_email)

@@ -9,6 +9,12 @@ class ProfessorProjectRepository(RepositoryBase):
     def list_projects(self):
         return self.db.list_projects()
 
+    def list_projects_for_teacher(self, teacher_email):
+        return self.db.list_projects_for_teacher(teacher_email)
+
+    def count_projects_for_teacher(self, teacher_email):
+        return self.db.count_projects_for_teacher(teacher_email)
+
     def get_class_name(self, class_id):
         if not class_id:
             return "Not Assigned"

@@ -10,9 +10,10 @@ class ProfessorTeamRepository(RepositoryBase):
         return self.db.list_teams()
 
     def list_teams_for_class(self, class_id):
-        return [
-            item for item in self.db.list_teams() if item.get("class_id") == class_id
-        ]
+        return self.db.list_teams_for_class(class_id)
+
+    def list_teams_for_teacher(self, teacher_email):
+        return self.db.list_teams_for_teacher(teacher_email)
 
     def create_team(self, class_id, team_name):
         teams = self.db.list_teams()

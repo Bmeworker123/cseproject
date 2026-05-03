@@ -89,6 +89,33 @@ class SqliteGateway:
             rows = db.execute("SELECT * FROM projects ORDER BY id").fetchall()
         return [dict(row) for row in rows]
 
+    def list_projects_for_teacher(self, teacher_email):
+        with self._connect() as db:
+            rows = db.execute(
+                """
+                SELECT p.*
+                FROM projects p
+                INNER JOIN classes c ON c.id = p.class_id
+                WHERE c.teacher_email = ?
+                ORDER BY p.id
+                """,
+                (teacher_email,),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def count_projects_for_teacher(self, teacher_email):
+        with self._connect() as db:
+            row = db.execute(
+                """
+                SELECT COUNT(*) AS total
+                FROM projects p
+                INNER JOIN classes c ON c.id = p.class_id
+                WHERE c.teacher_email = ?
+                """,
+                (teacher_email,),
+            ).fetchone()
+        return int(row["total"] if row else 0)
+
     def save_projects(self, projects):
         with self._connect() as db:
             existing_ids = {
@@ -156,6 +183,73 @@ class SqliteGateway:
         grouped = {}
         for row in members:
             grouped.setdefault(row["team_id"], []).append(row["student_id"])
+        teams = []
+        for row in rows:
+            team = dict(row)
+            team["member_ids"] = grouped.get(team["id"], [])
+            teams.append(team)
+        return teams
+
+    def list_teams_for_class(self, class_id):
+        with self._connect() as db:
+            rows = db.execute(
+                "SELECT * FROM teams WHERE class_id = ? ORDER BY id", (class_id,)
+            ).fetchall()
+            team_ids = [row["id"] for row in rows]
+            if not team_ids:
+                return []
+            placeholders = ",".join(["?"] * len(team_ids))
+            members = db.execute(
+                f"""
+                SELECT team_id, student_id
+                FROM team_members
+                WHERE team_id IN ({placeholders})
+                ORDER BY team_id, student_id
+                """,
+                tuple(team_ids),
+            ).fetchall()
+
+        grouped = {}
+        for row in members:
+            grouped.setdefault(row["team_id"], []).append(row["student_id"])
+
+        teams = []
+        for row in rows:
+            team = dict(row)
+            team["member_ids"] = grouped.get(team["id"], [])
+            teams.append(team)
+        return teams
+
+    def list_teams_for_teacher(self, teacher_email):
+        with self._connect() as db:
+            rows = db.execute(
+                """
+                SELECT t.*
+                FROM teams t
+                INNER JOIN classes c ON c.id = t.class_id
+                WHERE c.teacher_email = ?
+                ORDER BY t.id
+                """,
+                (teacher_email,),
+            ).fetchall()
+            team_ids = [row["id"] for row in rows]
+            if not team_ids:
+                return []
+            placeholders = ",".join(["?"] * len(team_ids))
+            members = db.execute(
+                f"""
+                SELECT team_id, student_id
+                FROM team_members
+                WHERE team_id IN ({placeholders})
+                ORDER BY team_id, student_id
+                """,
+                tuple(team_ids),
+            ).fetchall()
+
+        grouped = {}
+        for row in members:
+            grouped.setdefault(row["team_id"], []).append(row["student_id"])
+
         teams = []
         for row in rows:
             team = dict(row)

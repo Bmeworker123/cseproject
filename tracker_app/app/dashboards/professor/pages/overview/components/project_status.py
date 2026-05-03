@@ -56,20 +56,9 @@ class OverviewProjectStatusCard(Component):
 
     @staticmethod
     def calculate_status_breakdown(page):
-        teacher_class_ids = {item["id"] for item in page.teacher_classes()}
-        teams = []
-        for class_record in page.teacher_classes():
-            teams.extend(
-                page.app.professor_repo.list_teams_for_class(class_record["id"])
-            )
-
-        projects = [
-            project
-            for project in page.app.professor_repo.list_projects()
-            if not teacher_class_ids
-            or project.get("class_id") in teacher_class_ids
-            or project.get("class_id") is None
-        ]
+        teacher_email = page.app.current_user["email"]
+        teams = page.app.professor_repo.list_teams_for_teacher(teacher_email)
+        projects = page.app.professor_repo.list_projects_for_teacher(teacher_email)
         projects_by_team = {
             project.get("team_id"): project
             for project in projects

@@ -5,6 +5,9 @@ import unittest
 from tracker_app.app.dashboards.professor.pages.overview.overview import (
     ProfessorOverviewPage,
 )
+from tracker_app.app.dashboards.professor.pages.overview.components import (
+    OverviewStatsCard,
+)
 from tracker_app.migrations import Migrator, default_migrations
 from tracker_app.repositories.common.sqlite_gateway import SqliteGateway
 from tracker_app.repositories.professor import ProfessorRepository
@@ -124,6 +127,37 @@ class ProfessorOverviewTests(unittest.TestCase):
                 "Rejected": 1,
             },
         )
+
+    def test_active_projects_only_count_teacher_classes(self):
+        self.gateway.save_classes(
+            self.gateway.list_classes()
+            + [
+                {
+                    "id": 2,
+                    "name": "CS 999",
+                    "term": "Fall",
+                    "teacher_email": "other@example.com",
+                    "teacher_name": "Other Teacher",
+                    "created_at": "2026-05-02 10:00",
+                }
+            ]
+        )
+        self.gateway.save_projects(
+            self.gateway.list_projects()
+            + [
+                {
+                    "id": 99,
+                    "team_id": 999,
+                    "class_id": 2,
+                    "title": "Other Teacher Project",
+                    "notes": "",
+                    "approval_status": "Approved",
+                    "last_updated": "2026-05-02 10:00",
+                }
+            ]
+        )
+
+        self.assertEqual(OverviewStatsCard.calculate_active_projects(self.page), 3)
 
 
 if __name__ == "__main__":
