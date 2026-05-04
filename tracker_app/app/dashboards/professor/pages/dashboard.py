@@ -2,6 +2,7 @@ from tracker_app.ui import Header, Label
 from .classes import ProfessorClassesPage
 from .overview import ProfessorOverviewPage
 from .projects import ProfessorProjectsPage
+from .reports import ProfessorReportsPage
 from .students import ProfessorStudentsPage
 from .teams import ProfessorTeamsPage
 
@@ -18,6 +19,7 @@ class ProfessorDashboardPage:
             "classes": ProfessorClassesPage(self),
             "teams": ProfessorTeamsPage(self),
             "projects": ProfessorProjectsPage(self),
+            "reports": ProfessorReportsPage(self),
         }
 
     @staticmethod
@@ -81,6 +83,12 @@ class ProfessorDashboardPage:
                 "Projects",
                 lambda: self.set_page("projects"),
                 self.app.professor_page == "projects",
+            ),
+            "reports": self.app.sidebar_button(
+                self.sidebar,
+                "Reports",
+                lambda: self.set_page("reports"),
+                self.app.professor_page == "reports",
             ),
         }
 

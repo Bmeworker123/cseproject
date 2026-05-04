@@ -2,6 +2,7 @@ from .classes import ProfessorClassesPage
 from .dashboard import ProfessorDashboardPage
 from .overview import ProfessorOverviewPage
 from .projects import ProfessorProjectsPage
+from .reports import ProfessorReportsPage
 from .students import ProfessorStudentsPage
 from .teams import ProfessorTeamsPage
 
@@ -12,4 +13,5 @@ __all__ = [
     "ProfessorClassesPage",
     "ProfessorTeamsPage",
     "ProfessorProjectsPage",
+    "ProfessorReportsPage",
 ]
