@@ -43,11 +43,16 @@ class ProfessorTeamsPage(ProfessorPageBase):
 
         list_frame = tk.Frame(parent, bg="white")
         list_frame.pack(fill="both", expand=True)
-        Label(
-            list_frame, text="Teams", size=13, bold=True, bg="white", fg="#102a43"
-        ).pack(anchor="w")
 
         if not teacher_classes:
+            Label(
+                list_frame,
+                text="Teams",
+                size=13,
+                bold=True,
+                bg="white",
+                fg="#102a43",
+            ).pack(anchor="w")
             Label(
                 list_frame,
                 text="Create a class first, then add teams.",
@@ -56,6 +61,18 @@ class ProfessorTeamsPage(ProfessorPageBase):
                 fg="#52606d",
             ).pack(anchor="w", pady=(8, 0))
             return
+
+        list_header = tk.Frame(list_frame, bg="white")
+        list_header.pack(fill="x")
+        Label(
+            list_header, text="Teams", size=13, bold=True, bg="white", fg="#102a43"
+        ).pack(side="left", anchor="w")
+        self.delete_team_button = Button(
+            list_header,
+            "Delete Selected Team",
+            self.delete_selected_team,
+        )
+        self.delete_team_button.pack(side="right")
 
         self.team_table = Table(list_frame)
         self.team_table.pack(fill="x", pady=(8, 8))
@@ -83,6 +100,7 @@ class ProfessorTeamsPage(ProfessorPageBase):
                 )
 
         if not any_team:
+            self.delete_team_button.configure(state="disabled")
             Label(
                 list_frame,
                 text="No teams created yet.",
@@ -92,10 +110,7 @@ class ProfessorTeamsPage(ProfessorPageBase):
             ).pack(anchor="w", pady=(8, 0))
             self.team_table.destroy()
             return
-
-        Button(list_frame, "Delete Selected Team", self.delete_selected_team).pack(
-            anchor="w", pady=(4, 0)
-        )
+        self.delete_team_button.configure(state="normal")
 
     def create_team(self):
         class_value = self.team_class_var.get()

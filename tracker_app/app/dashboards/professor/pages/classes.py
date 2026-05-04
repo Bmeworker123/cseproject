@@ -40,17 +40,27 @@ class ProfessorClassesPage(ProfessorPageBase):
 
         list_frame = tk.Frame(parent, bg="white")
         list_frame.pack(fill="both", expand=True)
+
+        classes = self.teacher_classes()
+        list_header = tk.Frame(list_frame, bg="white")
+        list_header.pack(fill="x")
         Label(
-            list_frame,
+            list_header,
             text="Your Classes",
             size=13,
             bold=True,
             bg="white",
             fg="#102a43",
-        ).pack(anchor="w")
+        ).pack(side="left", anchor="w")
+        self.delete_class_button = Button(
+            list_header,
+            "Delete Selected Class",
+            self.delete_selected_class,
+        )
+        self.delete_class_button.pack(side="right")
 
-        classes = self.teacher_classes()
         if not classes:
+            self.delete_class_button.configure(state="disabled")
             Label(
                 list_frame,
                 text="No classes created yet.",
@@ -81,9 +91,7 @@ class ProfessorClassesPage(ProfessorPageBase):
                     class_record["created_at"],
                 ]
             )
-        Button(list_frame, "Delete Selected Class", self.delete_selected_class).pack(
-            anchor="w", pady=(4, 0)
-        )
+        self.delete_class_button.configure(state="normal")
 
     def create_class(self):
         name = self.class_name_field.get().strip()
