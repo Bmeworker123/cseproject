@@ -7,7 +7,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
-from tracker_app.ui import Button, Card, Label
+from tracker_app.ui import Button, Card, Label, Table
 
 from ..base import ProfessorPageBase
 
@@ -67,15 +67,8 @@ class ProfessorReportsPage(ProfessorPageBase):
             fg="#102a43",
         ).pack(anchor="w")
 
-        self.preview_list = tk.Listbox(
-            preview_card,
-            height=8,
-            font=("Consolas", 9),
-            bd=0,
-            highlightthickness=1,
-            highlightbackground="#d9e2ec",
-        )
-        self.preview_list.pack(fill="x", pady=(6, 0))
+        self.preview_table = Table(preview_card)
+        self.preview_table.pack(fill="x", pady=(6, 0))
 
         self.rows = self.app.professor_repo.list_combined_workflow_rows(
             self.app.current_user["email"]
@@ -177,31 +170,25 @@ class ProfessorReportsPage(ProfessorPageBase):
         widget.bind("<Button-5>", on_mousewheel)
 
     def _render_preview(self):
-        self.preview_list.delete(0, tk.END)
-        self.preview_list.insert(
-            tk.END,
-            " | ".join(
-                ["Student", "Class", "Team", "Project", "Status", "Updated"]
-            ),
+        self.preview_table.clear()
+        self.preview_table.set_header(
+            ["Student", "Class", "Team", "Project", "Status", "Updated"]
         )
-        self.preview_list.insert(tk.END, "-" * 110)
+
         if not self.rows:
-            self.preview_list.insert(tk.END, "No rows available for this teacher yet.")
+            self.preview_table.add_row(["No rows available for this teacher yet."] + [""] * 5)
             return
 
         for row in self.rows[:20]:
-            self.preview_list.insert(
-                tk.END,
-                " | ".join(
-                    [
-                        row["student_name"] or "-",
-                        row["class_name"] or "-",
-                        row["team_name"] or "-",
-                        row["project_title"] or "-",
-                        row["approval_status"] or "-",
-                        row["last_updated"] or "-",
-                    ]
-                ),
+            self.preview_table.add_row(
+                [
+                    row["student_name"] or "-",
+                    row["class_name"] or "-",
+                    row["team_name"] or "-",
+                    row["project_title"] or "-",
+                    row["approval_status"] or "-",
+                    row["last_updated"] or "-",
+                ]
             )
 
     def _row_values(self):

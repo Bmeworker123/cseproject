@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 
-from tracker_app.ui import Button, Card, EntryField, Label
+from tracker_app.ui import Button, Card, EntryField, Label, Table
 from ..base import ProfessorPageBase
 
 
@@ -60,15 +60,10 @@ class ProfessorClassesPage(ProfessorPageBase):
             ).pack(anchor="w", pady=(8, 0))
             return
 
-        self.class_listbox = tk.Listbox(
-            list_frame,
-            font=("Segoe UI", 10),
-            height=8,
-            bd=0,
-            highlightthickness=1,
-            highlightbackground="#e1e4e8",
-        )
-        self.class_listbox.pack(fill="x", pady=(8, 8))
+        self.class_table = Table(list_frame)
+        self.class_table.pack(fill="x", pady=(8, 8))
+        self.class_table.set_header(["Class Name", "Term", "Students", "Created"])
+        
         students = self.app.professor_repo.list_students()
         for class_record in classes:
             count = len(
@@ -78,8 +73,14 @@ class ProfessorClassesPage(ProfessorPageBase):
                     if student.get("class_id") == class_record["id"]
                 ]
             )
-            line = f"{class_record['name']} ({class_record['term']}) | Students: {count} | Created: {class_record['created_at']}"
-            self.class_listbox.insert(tk.END, line)
+            self.class_table.add_row(
+                [
+                    class_record["name"],
+                    class_record["term"],
+                    str(count),
+                    class_record["created_at"],
+                ]
+            )
         Button(list_frame, "Delete Selected Class", self.delete_selected_class).pack(
             anchor="w", pady=(4, 0)
         )
@@ -99,10 +100,10 @@ class ProfessorClassesPage(ProfessorPageBase):
         self.dashboard.render()
 
     def delete_selected_class(self):
-        selection = self.class_listbox.curselection()
-        if not selection:
+        index = self.class_table.get_selected_index()
+        if index == -1:
             return
-        class_record = self.teacher_classes()[selection[0]]
+        class_record = self.teacher_classes()[index]
         if messagebox.askyesno(
             "Confirm Delete", f"Delete class '{class_record['name']}'?"
         ):

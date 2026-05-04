@@ -1,6 +1,6 @@
 import tkinter as tk
 
-from tracker_app.ui import Button, Card, Label
+from tracker_app.ui import Button, Card, Label, Table
 from ..base import ProfessorPageBase
 
 
@@ -37,17 +37,9 @@ class ProfessorStudentsPage(ProfessorPageBase):
             left, text="Students", size=13, bold=True, bg="#f7f9fb", fg="#102a43"
         ).pack(anchor="w")
 
-        self.student_listbox = tk.Listbox(
-            left,
-            font=("Segoe UI", 10),
-            bd=0,
-            highlightthickness=1,
-            highlightbackground="#e1e4e8",
-        )
-        self.student_listbox.pack(fill="both", expand=True, pady=8)
-        self.student_listbox.bind(
-            "<<ListboxSelect>>", lambda _event: self.load_selected_student()
-        )
+        self.student_table = Table(left, bg="#f7f9fb")
+        self.student_table.pack(fill="both", expand=True, pady=8)
+        self.student_table.on_select(lambda row: self.load_selected_student())
 
         right = tk.Frame(shell, bg="white")
         right.pack(side="left", fill="both", expand=True)
@@ -111,10 +103,11 @@ class ProfessorStudentsPage(ProfessorPageBase):
         students = self.app.professor_repo.list_students()
         students.sort(key=lambda user: user.get("created_at", ""), reverse=True)
         self.student_records = students
-        self.student_listbox.delete(0, tk.END)
+        self.student_table.clear()
+        self.student_table.set_header(["Name", "Status"])
         for user in students:
             status = user.get("status", "Active")
-            self.student_listbox.insert(tk.END, f"{user['name']} | {status}")
+            self.student_table.add_row([user["name"], status])
         self.update_student_dropdowns()
 
     def update_student_dropdowns(self):
@@ -159,11 +152,11 @@ class ProfessorStudentsPage(ProfessorPageBase):
         self.assign_team_var.set("Not Assigned")
 
     def load_selected_student(self):
-        selection = self.student_listbox.curselection()
-        if not selection:
+        index = self.student_table.get_selected_index()
+        if index == -1:
             return
 
-        user = self.student_records[selection[0]]
+        user = self.student_records[index]
         self.app.selected_student_id = user["id"]
         self.student_detail_label.config(
             text=(

@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 
-from tracker_app.ui import Button, Card, EntryField, Label, OptionField
+from tracker_app.ui import Button, Card, EntryField, Label, OptionField, Table
 from ..base import ProfessorPageBase
 
 
@@ -57,18 +57,14 @@ class ProfessorTeamsPage(ProfessorPageBase):
             ).pack(anchor="w", pady=(8, 0))
             return
 
-        self.team_listbox = tk.Listbox(
-            list_frame,
-            font=("Segoe UI", 10),
-            height=8,
-            bd=0,
-            highlightthickness=1,
-            highlightbackground="#e1e4e8",
-        )
-        self.team_listbox.pack(fill="x", pady=(8, 8))
+        self.team_table = Table(list_frame)
+        self.team_table.pack(fill="x", pady=(8, 8))
         self.team_records = []
         any_team = False
         students = self.app.professor_repo.list_students()
+        
+        self.team_table.set_header(["Class", "Team Name", "Members"])
+        
         for class_record in teacher_classes:
             teams = self.app.professor_repo.list_teams_for_class(class_record["id"])
             for team in teams:
@@ -78,9 +74,12 @@ class ProfessorTeamsPage(ProfessorPageBase):
                     s["name"] for s in students if s.get("team_id") == team["id"]
                 ]
                 label = ", ".join(members) if members else "Empty"
-                self.team_listbox.insert(
-                    tk.END,
-                    f"{class_record['name']} ({class_record['term']}) | {team['name']} | Members: {label}",
+                self.team_table.add_row(
+                    [
+                        f"{class_record['name']} ({class_record['term']})",
+                        team["name"],
+                        label
+                    ]
                 )
 
         if not any_team:
@@ -91,7 +90,7 @@ class ProfessorTeamsPage(ProfessorPageBase):
                 bg="white",
                 fg="#52606d",
             ).pack(anchor="w", pady=(8, 0))
-            self.team_listbox.destroy()
+            self.team_table.destroy()
             return
 
         Button(list_frame, "Delete Selected Team", self.delete_selected_team).pack(
@@ -124,10 +123,10 @@ class ProfessorTeamsPage(ProfessorPageBase):
             self.dashboard.render()
 
     def delete_selected_team(self):
-        selection = self.team_listbox.curselection()
-        if not selection:
+        index = self.team_table.get_selected_index()
+        if index == -1:
             return
-        team = self.team_records[selection[0]]
+        team = self.team_records[index]
         if messagebox.askyesno("Confirm Delete", f"Delete team '{team['name']}'?"):
             self.app.professor_repo.delete_team(team["id"])
             self.team_message.config(text="Team deleted.", fg="#1f7a45")

@@ -1,5 +1,5 @@
 from tracker_app.app.components import Component
-from tracker_app.ui import Card, Label
+from tracker_app.ui import Card, Label, Table
 
 
 class OverviewNewStudentsCard(Component):
@@ -34,8 +34,10 @@ class OverviewNewStudentsCard(Component):
             ).pack(anchor="w", pady=(6, 0))
             return
 
+        table = Table(recent_card, bg="#f7f9fb")
+        table.pack(fill="x", pady=8)
+        table.set_header(["Name", "Email", "Joined"])
         for user in new_students:
-            line = f"{user['name']} ({user['email']}) | Joined: {user.get('created_at', 'N/A')}"
-            Label(recent_card, text=line, size=10, bg="#f7f9fb", fg="#334e68").pack(
-                anchor="w", pady=2
+            table.add_row(
+                [user["name"], user["email"], user.get("created_at", "N/A")]
             )
